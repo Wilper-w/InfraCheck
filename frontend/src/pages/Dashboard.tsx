@@ -134,26 +134,29 @@ function TrendChart({ series }: { series: TrendPoint[] }) {
     return (
       <div style={{ padding: '32px 8px' }}>
         <div style={{ color: 'var(--c-text-muted)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--s-4)' }}>
-          近 30 天仅 {activeDays.length} 天有巡检记录，数据点不足以呈现趋势。
-          积累 4 天以上记录后此处将自动显示折线图。
+          {`近 30 天仅 ${activeDays.length} 天有巡检记录，数据点不足以呈现趋势；积累 4 天以上记录后此处将自动显示折线图。`}
         </div>
         {latest && (
-          <div style={{ display: 'flex', gap: 'var(--s-6)', flexWrap: 'wrap' }}>
-            {SERIES_META.map((m) => (
-              <div key={m.key}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: m.cssVar }} />
-                  {m.label}
-                </div>
-                <div className="num" style={{ fontSize: 22, fontWeight: 650, marginTop: 4 }}>
-                  {latest[m.key]}
-                </div>
-              </div>
-            ))}
-            <div style={{ marginLeft: 'auto', alignSelf: 'flex-end', fontSize: 'var(--fs-xs)', color: 'var(--c-text-muted)' }}>
-              最近记录 {latest.date}
+          <>
+            {/* 与顶部 KPI 口径不同：KPI 是「最近一次巡检」，这里是「当日累计」，
+                同日多次巡检会叠加。不标清楚会被当成数字对不上的 bug。 */}
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)', marginBottom: 'var(--s-2)' }}>
+              {`${latest.date} 当日累计（同日多次巡检会累加，与上方「最近一次巡检」口径不同）`}
             </div>
-          </div>
+            <div style={{ display: 'flex', gap: 'var(--s-6)', flexWrap: 'wrap' }}>
+              {SERIES_META.map((m) => (
+                <div key={m.key}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: m.cssVar }} />
+                    {m.label}
+                  </div>
+                  <div className="num" style={{ fontSize: 22, fontWeight: 650, marginTop: 4 }}>
+                    {latest[m.key]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     );
