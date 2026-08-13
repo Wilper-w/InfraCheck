@@ -65,6 +65,23 @@ def client(app):
         yield c
 
 
+@pytest.fixture
+def db_session(app):
+    """直连同一个内存库的 Session。
+
+    用例内只 flush 不 commit，退出时 rollback —— 否则写入会残留到共享的
+    session 级数据库里，影响其他用例的计数断言。
+    """
+    from app import db as db_module
+
+    db = db_module.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.rollback()
+        db.close()
+
+
 @pytest.fixture(scope="session")
 def token(client):
     """Login and return a Bearer token (CONTRACT §4 /auth/login)."""

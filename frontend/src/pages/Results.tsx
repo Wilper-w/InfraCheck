@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Table,
-  Tag,
   Button,
   Drawer,
   Descriptions,
@@ -13,7 +12,7 @@ import {
 } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
 import PageHeader from '../components/PageHeader';
-import StatusTag, { RUN_STATUS_META } from '../components/StatusTag';
+import StatusTag, { RunStatusTag } from '../components/StatusTag';
 import { runApi } from '../api';
 import type { Run, RunDetail, CheckResult, ResultStatus } from '../types';
 import { VERDICT_TEXT } from '../constants';
@@ -119,10 +118,9 @@ export default function Results() {
       dataIndex: 'trigger',
       width: 110,
       resizable: true,
-      render: (v: string) => {
-        const m = TRIGGER_META[v] ?? { color: 'gray', text: v };
-        return <Tag color={m.color}>{m.text}</Tag>;
-      },
+      render: (v: string) => (
+        <span className="meta-tag">{TRIGGER_META[v]?.text ?? v}</span>
+      ),
     },
     { title: '触发人', dataIndex: 'triggered_by', width: 130 },
     { title: '开始时间', dataIndex: 'started_at', render: (v: string) => fmtTime(v) },
@@ -132,10 +130,7 @@ export default function Results() {
       dataIndex: 'status',
       width: 110,
       resizable: true,
-      render: (v: string) => {
-        const m = RUN_STATUS_META[v] ?? { color: 'gray', text: v };
-        return <Tag color={m.color}>{m.text}</Tag>;
-      },
+      render: (v: string) => <RunStatusTag status={v} />,
     },
     {
       title: '操作',
@@ -143,7 +138,7 @@ export default function Results() {
       width: 130,
       resizable: true,
       render: (_: unknown, record: Run) => (
-        <Button type="primary" size="small" onClick={() => openDetail(record)}>
+        <Button type="text" size="small" onClick={() => openDetail(record)}>
           查看明细
         </Button>
       ),
@@ -169,7 +164,7 @@ export default function Results() {
         const e = parseEvidence(r.evidence);
         return (
           <Tooltip position="top" content={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(e, null, 2)}</pre>}>
-            <span style={{ color: '#4e5969', cursor: 'help' }}>{e.detail || e.verdict || '-'}</span>
+            <span style={{ color: 'var(--c-text-2)', cursor: 'help' }}>{e.detail || e.verdict || '-'}</span>
           </Tooltip>
         );
       },
@@ -184,9 +179,9 @@ export default function Results() {
         const text = (e.verdict && VERDICT_TEXT[e.verdict]) || e.verdict || '-';
         return (
           <Tooltip position="top" content={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(e, null, 2)}</pre>}>
-            <Tag size="small" bordered style={{ cursor: 'help' }}>
+            <span className="meta-tag" style={{ cursor: 'help' }}>
               {text}
-            </Tag>
+            </span>
           </Tooltip>
         );
       },
@@ -203,7 +198,6 @@ export default function Results() {
           loading={loading}
           columns={runColumns}
           data={runs}
-          borderCell
           pagination={{
             current: page,
             pageSize: 10,
@@ -238,7 +232,7 @@ export default function Results() {
                 { label: '触发人', value: detailRun.triggered_by },
                 { label: '开始时间', value: fmtTime(detailRun.started_at) },
                 { label: '结束时间', value: fmtTime(detailRun.finished_at) },
-                { label: '状态', value: RUN_STATUS_META[detailRun.status]?.text ?? detailRun.status },
+                { label: '状态', value: detailRun.status === 'finished' ? '已完成' : detailRun.status === 'running' ? '运行中' : '失败' },
                 {
                   label: '总结',
                   value: detailRun.results
@@ -279,7 +273,6 @@ export default function Results() {
                 rowKey="id"
                 columns={resultColumns}
                 data={results}
-                borderCell
                 expandedRowRender={(r: CheckResult) => {
                   const e = parseEvidence(r.evidence);
                   return (
@@ -290,7 +283,7 @@ export default function Results() {
                         lineHeight: 1.6,
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-all',
-                        color: '#4e5969',
+                        color: 'var(--c-text-2)',
                       }}
                     >
                       {JSON.stringify(e, null, 2)}

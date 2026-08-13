@@ -91,7 +91,6 @@ export default function EnvironmentsTab() {
         loading={crud.loading}
         columns={columns}
         data={crud.items}
-        borderCell
         pagination={crud.pagination}
         noDataElement={<Empty description="暂无环境" />}
       />

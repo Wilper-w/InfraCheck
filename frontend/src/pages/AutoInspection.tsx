@@ -107,7 +107,7 @@ export default function AutoInspectionTab() {
             按设定的时间点周期性巡检，可配置多个时刻（如每天 08:00 与 22:00）
           </div>
         </div>
-        <IconCalendarClock style={{ fontSize: 26, color: 'var(--color-primary)' }} />
+        <IconCalendarClock style={{ fontSize: 26, color: 'var(--c-primary)' }} />
       </div>
 
       {!enabled && (
@@ -120,7 +120,7 @@ export default function AutoInspectionTab() {
 
       <div className="panel-card" style={{ padding: 24 }}>
         {/* 启用开关 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0 20px', borderBottom: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0 20px', borderBottom: '1px solid var(--c-border)' }}>
           <div>
             <div style={{ fontWeight: 600 }}>启用定时任务</div>
             <div className="sub-text" style={{ marginTop: 4 }}>开启后按下方时间点定时巡检全部环境</div>
@@ -144,7 +144,7 @@ export default function AutoInspectionTab() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {schedules.map((s, i) => (
-                <Card key={i} bordered={false} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+                <Card key={i} bordered={false} style={{ background: 'var(--c-fill)', border: '1px solid var(--c-border)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'space-between' }}>
                       <Space size={12}>

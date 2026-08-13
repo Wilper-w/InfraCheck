@@ -114,7 +114,6 @@ export default function CheckItemsTab() {
         loading={crud.loading}
         columns={columns}
         data={crud.items}
-        borderCell
         pagination={crud.pagination}
         noDataElement={<Empty description="暂无巡检项" />}
       />

@@ -25,6 +25,10 @@ class TargetObject:
     environment_id: int
     os_flavor: str | None
     address: str | None = None  # SSH-reachable host/IP; None when not mappable
+    # 服务探测参数（CONTRACT §3 system_services）；非 service 目标为 None
+    probe_mode: str | None = None  # systemd|port|vip
+    probe_target: str | None = None  # vip 地址
+    probe_port: int | None = None
 
 
 def _env_flavor(env: Environment) -> str:
@@ -46,10 +50,12 @@ def resolve_targets(db: Session, check_item: CheckItem) -> list[TargetObject]:
                 TargetObject("physical", f"{node.hostname}({node.ip})", env.id, flavor, node.ip)
             )
     elif tt == "service":
+        # 只巡检启用的服务：enabled 是运维显式的停用开关，必须生效
         query = (
             db.query(SystemService, Environment, PhysicalNode)
             .join(Environment, SystemService.environment_id == Environment.id)
             .outerjoin(PhysicalNode, SystemService.node_id == PhysicalNode.id)
+            .filter(SystemService.enabled.is_(True))
         )
         for svc, env, node in query:
             targets.append(
@@ -59,6 +65,9 @@ def resolve_targets(db: Session, check_item: CheckItem) -> list[TargetObject]:
                     env.id,
                     _env_flavor(env),
                     node.ip if node else None,
+                    probe_mode=svc.probe_mode or "systemd",
+                    probe_target=svc.probe_target,
+                    probe_port=svc.port,
                 )
             )
     elif tt == "cluster":

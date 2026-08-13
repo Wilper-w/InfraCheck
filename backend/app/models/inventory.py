@@ -53,6 +53,10 @@ class SystemService(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     port: Mapped[int | None] = mapped_column(Integer, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    # 探测方式：systemd（默认）| port（监听端口）| vip（虚拟 IP 绑定）
+    probe_mode: Mapped[str] = mapped_column(String(16), default="systemd", nullable=False)
+    # vip 模式存虚拟 IP；systemd/port 模式留空则回落到 name/port
+    probe_target: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     environment: Mapped[Environment] = relationship(back_populates="services")
 

@@ -17,7 +17,6 @@ export default function Configuration() {
           <Tabs.TabPane key="nodes" title="物理机" />
           <Tabs.TabPane key="services" title="系统服务" />
           <Tabs.TabPane key="check-items" title="巡检项" />
-          <Tabs.TabPane key="auto-inspection" title="自动巡检" />
         </Tabs>
         <div style={{ padding: '20px 4px 0' }}>
           {activeKey === 'environments' && <EnvironmentsTab />}

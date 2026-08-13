@@ -101,7 +101,6 @@ export default function NodesTab() {
           loading={crud.loading}
           columns={columns}
           data={crud.items}
-          borderCell
           pagination={crud.pagination}
           noDataElement={<Empty description={`环境 ${currentEnv?.name ?? ''} 暂无物理机`} />}
         />

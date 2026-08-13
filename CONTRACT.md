@@ -24,7 +24,10 @@
 
 **environments**：id(int PK)｜name(str unique)｜os_flavor(str: "ubuntu"|"centos")｜description(str)｜created_at
 **physical_nodes**：id｜environment_id(FK)｜hostname(str)｜ip(str)｜os_flavor(str, 可空，空则继承环境)｜created_at｜unique(environment_id, hostname)
-**system_services**：id｜environment_id(FK)｜node_id(FK 可空)｜name(str: nginx/keepalived/mysql/haproxy/...)｜port(int 可空)｜enabled(bool)
+**system_services**：id｜environment_id(FK)｜node_id(FK 可空)｜name(str: nginx/keepalived/mysql/haproxy/...)｜port(int 可空)｜enabled(bool)｜probe_mode(str: "systemd"|"port"|"vip"，默认 systemd)｜probe_target(str 可空，vip 模式存虚拟 IP)
+
+> `enabled=false` 的服务**不进入巡检目标**（见 §6 目标解析）。
+> `probe_mode=port` 必须有 `port`，`probe_mode=vip` 必须有 `probe_target`，否则 422。
 **clusters**：id｜environment_id(FK)｜name(str)｜api_endpoint(str)｜created_at
 **namespaces**：id｜cluster_id(FK)｜name(str)｜unique(cluster_id,name)
 **pods**：id｜namespace_id(FK)｜name(str)｜labels(str JSON 可空)
@@ -56,7 +59,9 @@
 
 ### 系统服务 /environments/{env_id}/services
 - `GET /api/environments/{env_id}/services`
-- `POST /api/environments/{env_id}/services`  `{"name","node_id?","port?","enabled?"}`
+- `POST /api/environments/{env_id}/services`  `{"name","node_id?","port?","enabled?","probe_mode?","probe_target?"}`
+- `PUT /api/environments/{env_id}/services/{service_id}`  同上全部字段可选
+- `POST /api/environments/{env_id}/services/{service_id}/toggle` → 翻转 `enabled`，返回 ServiceOut
 - `DELETE /api/environments/{env_id}/services/{service_id}`
 
 ### K8s /environments/{env_id}/clusters
@@ -105,6 +110,17 @@
 ## 6. 巡检执行引擎
 
 - **CheckItem 按 target_type 注册**；同语义按 `os_flavor` 分派命令（如 systemd 状态、磁盘使用率、内存、负载）。
+- **目标解析**：`target_type=service` 只纳入 `enabled=true` 的服务；停用即退出巡检范围。
+- **服务探测按 `probe_mode` 二次分派**（ssh transport）：
+
+  | probe_mode | 命令 | 适用 |
+  |---|---|---|
+  | `systemd` | `systemctl is-active <name>` | 标准 systemd 托管服务 |
+  | `port` | `ss -ltnH 'sport = :<port>' \| grep -q LISTEN` | 有监听端口的服务，能证明真正对外提供能力 |
+  | `vip` | `ip -o addr show \| grep -qw <probe_target>` | keepalived 等漂 VIP 的服务 |
+
+  vip 模式的语义要点：keepalived **进程存活不等于正常** —— VIP 未绑在本机同样是故障，因此探测的是地址绑定而非进程。
+  `port` 模式缺 `port`、`vip` 模式缺 `probe_target` 时回落到 `systemd`，避免拼出无法执行的命令。
 - `RUNNER_TRANSPORT=dryrun`（默认）：对每个对象按确定性规则产出结果（尽量让结果覆盖 normal/abnormal/unreachable/failed 四态，便于展示）。
 - `RUNNER_TRANSPORT=ssh`：读 `JUMP_HOST`/`JUMP_USER`/`JUMP_KEY`，经 ProxyJump 到目标执行。
 - 每次 run 触发时写 audit，actor 来自 JWT 的 `account`；run 结束后自动生成 HTML/Markdown 报告并写 reports + audit。
