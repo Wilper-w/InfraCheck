@@ -124,7 +124,7 @@ export default function AutoInspection() {
         />
       )}
 
-      <div className="panel-card" style={{ maxWidth: 880 }}>
+      <div className="panel-card" style={{ width: '100%' }}>
         <div className="card-head">
           <div>
             <div className="card-title">启用定时任务</div>

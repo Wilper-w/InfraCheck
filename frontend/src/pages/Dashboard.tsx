@@ -125,54 +125,61 @@ function TrendChart({ series }: { series: TrendPoint[] }) {
   const activeDays = series.filter(
     (p) => p.normal + p.abnormal + p.unreachable + p.failed > 0,
   );
+  const latest = activeDays[activeDays.length - 1];
 
   if (series.length === 0) return <Empty description="暂无趋势数据" style={{ padding: 48 }} />;
 
-  // 有效数据点 < 4：降级为汇总卡片（图表规范：Fewer than 4 data points → use stat card）
-  if (activeDays.length < 4) {
-    const latest = activeDays[activeDays.length - 1];
-    return (
-      <div style={{ padding: '32px 8px' }}>
-        <div style={{ color: 'var(--c-text-muted)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--s-4)' }}>
-          {`近 30 天仅 ${activeDays.length} 天有巡检记录，数据点不足以呈现趋势；积累 4 天以上记录后此处将自动显示折线图。`}
-        </div>
-        {latest && (
-          <>
-            {/* 与顶部 KPI 口径不同：KPI 是「最近一次巡检」，这里是「当日累计」，
-                同日多次巡检会叠加。不标清楚会被当成数字对不上的 bug。 */}
-            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)', marginBottom: 'var(--s-2)' }}>
-              {`${latest.date} 当日累计（同日多次巡检会累加，与上方「最近一次巡检」口径不同）`}
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--s-6)', flexWrap: 'wrap' }}>
-              {SERIES_META.map((m) => (
-                <div key={m.key}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 2, background: m.cssVar }} />
-                    {m.label}
-                  </div>
-                  <div className="num" style={{ fontSize: 22, fontWeight: 650, marginTop: 4 }}>
-                    {latest[m.key]}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+  const summary = (
+    <div className="trend-summary" style={{ marginTop: 'auto', padding: 'var(--s-4) 8px 0' }}>
+      <div style={{ color: 'var(--c-text-muted)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--s-3)' }}>
+        {activeDays.length < 4
+          ? `近 30 天仅 ${activeDays.length} 天有巡检记录，数据点不足以呈现趋势；积累 4 天以上记录后此处将自动显示折线图。`
+          : `近 30 天共有 ${activeDays.length} 天巡检记录，折线图展示每日累计结果变化。`}
       </div>
+      {latest && (
+        <>
+          {/* 与顶部 KPI 口径不同：KPI 是「最近一次巡检」，这里是「当日累计」，
+              同日多次巡检会叠加。不标清楚会被当成数字对不上的 bug。 */}
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)', marginBottom: 'var(--s-2)' }}>
+            {`${latest.date} 当日累计（同日多次巡检会累加，与上方「最近一次巡检」口径不同）`}
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--s-6)', flexWrap: 'wrap' }}>
+            {SERIES_META.map((m) => (
+              <div key={m.key}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: m.cssVar }} />
+                  {m.label}
+                </div>
+                <div className="num" style={{ fontSize: 22, fontWeight: 650, marginTop: 4 }}>
+                  {latest[m.key]}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // 有效数据点 < 4：不绘制容易误导的折线，仅保留底部汇总。
+  if (activeDays.length < 4) {
+    return (
+      <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>{summary}</div>
     );
   }
 
   const hp = hover !== null ? series[hover] : null;
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
-      <svg
-        width="100%"
-        viewBox={`0 0 ${W} ${H}`}
-        style={{ display: 'block' }}
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
-      >
+    <div style={{ width: '100%' }}>
+      <div className="trend-plot" ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
+        <svg
+          width="100%"
+          viewBox={`0 0 ${W} ${H}`}
+          style={{ display: 'block' }}
+          onMouseMove={onMove}
+          onMouseLeave={() => setHover(null)}
+        >
         {yTicks.map((t) => (
           <g key={t}>
             <line x1={P.left} x2={W - P.right} y1={y(t)} y2={y(t)} stroke="var(--c-border)" strokeDasharray="4 4" />
@@ -215,35 +222,37 @@ function TrendChart({ series }: { series: TrendPoint[] }) {
             ))}
           </g>
         )}
-      </svg>
-      {hp && hover !== null && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${(x(hover) / W) * 100}%`,
-            top: 0,
-            transform: 'translateX(8px)',
-            background: 'var(--c-surface)',
-            border: '1px solid var(--c-border)',
-            borderRadius: 'var(--r-md)',
-            boxShadow: 'var(--sh-lg)',
-            padding: '8px 12px',
-            fontSize: 'var(--fs-xs)',
-            whiteSpace: 'nowrap',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>{hp.date}</div>
-          {SERIES_META.map((m) => (
-            <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.7 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: m.cssVar }} />
-              <span style={{ color: 'var(--c-text-muted)' }}>{m.label}</span>
-              <span className="num" style={{ marginLeft: 'auto', fontWeight: 600 }}>{hp[m.key]}</span>
-            </div>
-          ))}
-        </div>
-      )}
+        </svg>
+        {hp && hover !== null && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${(x(hover) / W) * 100}%`,
+              top: 0,
+              transform: 'translateX(8px)',
+              background: 'var(--c-surface)',
+              border: '1px solid var(--c-border)',
+              borderRadius: 'var(--r-md)',
+              boxShadow: 'var(--sh-lg)',
+              padding: '8px 12px',
+              fontSize: 'var(--fs-xs)',
+              whiteSpace: 'nowrap',
+              zIndex: 2,
+              pointerEvents: 'none',
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>{hp.date}</div>
+            {SERIES_META.map((m) => (
+              <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.7 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: m.cssVar }} />
+                <span style={{ color: 'var(--c-text-muted)' }}>{m.label}</span>
+                <span className="num" style={{ marginLeft: 'auto', fontWeight: 600 }}>{hp[m.key]}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {summary}
     </div>
   );
 }
