@@ -127,7 +127,6 @@ export default function Reports() {
           loading={loading}
           columns={columns}
           data={reports}
-          borderCell
           pagination={{
             current: page,
             pageSize: 10,
@@ -157,7 +156,7 @@ export default function Reports() {
             <iframe
               title="report-preview"
               srcDoc={previewHtml}
-              style={{ width: '100%', height: '100%', border: '1px solid #e5e6eb', borderRadius: 6 }}
+              style={{ width: '100%', height: '100%', border: '1px solid var(--c-border)', borderRadius: 6 }}
             />
           )}
         </div>

@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 # ---- environment ----
@@ -66,15 +66,52 @@ class NodeOut(BaseModel):
 
 
 # ---- service ----
+PROBE_MODES = ("systemd", "port", "vip")
+
+
 class ServiceBase(BaseModel):
     name: str
     node_id: Optional[int] = None
     port: Optional[int] = None
     enabled: bool = True
+    probe_mode: str = "systemd"
+    probe_target: Optional[str] = None
+
+    @field_validator("probe_mode")
+    @classmethod
+    def _valid_mode(cls, v: str) -> str:
+        if v not in PROBE_MODES:
+            raise ValueError(f"probe_mode must be one of {PROBE_MODES}")
+        return v
+
+    @model_validator(mode="after")
+    def _mode_requires_target(self):
+        """port 模式需要端口，vip 模式需要 VIP 地址，否则探测无从下手。"""
+        if self.probe_mode == "port" and self.port is None:
+            raise ValueError("probe_mode=port requires a port")
+        if self.probe_mode == "vip" and not (self.probe_target or "").strip():
+            raise ValueError("probe_mode=vip requires probe_target (the virtual IP)")
+        return self
 
 
 class ServiceCreate(ServiceBase):
     pass
+
+
+class ServiceUpdate(BaseModel):
+    name: Optional[str] = None
+    node_id: Optional[int] = None
+    port: Optional[int] = None
+    enabled: Optional[bool] = None
+    probe_mode: Optional[str] = None
+    probe_target: Optional[str] = None
+
+    @field_validator("probe_mode")
+    @classmethod
+    def _valid_mode(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in PROBE_MODES:
+            raise ValueError(f"probe_mode must be one of {PROBE_MODES}")
+        return v
 
 
 class ServiceOut(BaseModel):
@@ -85,6 +122,8 @@ class ServiceOut(BaseModel):
     name: str
     port: Optional[int] = None
     enabled: bool
+    probe_mode: str = "systemd"
+    probe_target: Optional[str] = None
 
 
 # ---- cluster / namespace / pod ----

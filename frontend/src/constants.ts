@@ -1,14 +1,29 @@
 import type { ResultStatus } from './types';
 
-// 结果状态 → Arco Tag 颜色 + 中文文案
+// 结果状态 → 中文文案 + CSS 语义色令牌（深浅色自动适配）
 export const STATUS_META: Record<
   ResultStatus,
-  { color: string; text: string }
+  { text: string; cssVar: string }
 > = {
-  normal: { color: 'green', text: '正常' },
-  abnormal: { color: 'red', text: '异常' },
-  unreachable: { color: 'orange', text: '不可达' },
-  failed: { color: 'gray', text: '检查失败' },
+  normal: { text: '正常', cssVar: 'var(--c-normal)' },
+  abnormal: { text: '异常', cssVar: 'var(--c-abnormal)' },
+  unreachable: { text: '不可达', cssVar: 'var(--c-unreachable)' },
+  failed: { text: '检查失败', cssVar: 'var(--c-failed)' },
+};
+
+/** 图表序列：颜色走令牌，线型/形状提供非色彩区分（可及性） */
+export const SERIES_META = [
+  { key: 'normal' as const, label: '正常', cssVar: 'var(--c-normal)', dash: undefined, shape: 'circle' },
+  { key: 'abnormal' as const, label: '异常', cssVar: 'var(--c-abnormal)', dash: '6 4', shape: 'square' },
+  { key: 'unreachable' as const, label: '不可达', cssVar: 'var(--c-unreachable)', dash: '2 3', shape: 'triangle' },
+  { key: 'failed' as const, label: '检查失败', cssVar: 'var(--c-failed)', dash: '4 3', shape: 'diamond' },
+];
+
+/** 系统服务探测方式（CONTRACT §3 system_services.probe_mode） */
+export const PROBE_MODE_TEXT: Record<string, string> = {
+  systemd: 'systemd',
+  port: '端口监听',
+  vip: 'VIP 绑定',
 };
 
 export const TARGET_TYPE_TEXT: Record<string, string> = {

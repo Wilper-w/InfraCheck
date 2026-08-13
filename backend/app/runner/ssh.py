@@ -14,13 +14,22 @@ def _command_for(check_item: CheckItem, target: TargetObject) -> str:
     """Dispatched shell command per target_type (OS-differentiated where it matters).
 
     exit 0 => normal; non-zero => abnormal; connect/run failure => unreachable/failed.
-    systemd vs init: keepalived/haproxy may run under init on legacy boxes; for
-    these five environments systemd is assumed (Ubuntu 22/24 & CentOS 8 all ship
-    systemd), so `systemctl is-active` is used uniformly.
+
+    Services dispatch further on `probe_mode` (CONTRACT §3/§6):
+    - systemd: `systemctl is-active` — standard unit-managed services.
+    - port:    listening socket check — proves the service actually serves.
+    - vip:     virtual-IP binding — for keepalived, a live process on the wrong
+               node is still a failure; only the node holding the VIP is healthy.
     """
     tt = target.object_type
     if tt == "service":
         name = target.object_name.split("@")[0]
+        mode = target.probe_mode or "systemd"
+        if mode == "port" and target.probe_port:
+            # -H 去表头，有监听行则 grep 退出 0
+            return f"ss -ltnH 'sport = :{target.probe_port}' | grep -q LISTEN"
+        if mode == "vip" and target.probe_target:
+            return f"ip -o addr show | grep -qw {target.probe_target}"
         return f"systemctl is-active {name}"
     if tt == "physical":
         return "hostname && uptime"

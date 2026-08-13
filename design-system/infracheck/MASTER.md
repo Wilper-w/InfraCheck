@@ -1,51 +1,56 @@
 # InfraCheck Design System — MASTER
 
-> 企业级运维巡检控制台设计系统（明亮 · 数据优先 · 可信）。
-> 栈：React 18 + Arco Design。来源：ui-ux-pro-max (B2B Service / Soft UI Evolution / Inter / Monitoring Line Chart)。
-> 页面级覆盖优先：`pages/<page>.md` 存在则覆盖 Master。
+> 企业级运维巡检控制台。数据优先、克制、双主题。
+> 栈：React 18 + Arco Design。来源：ui-ux-pro-max（Real-Time/Operations · Soft UI Evolution · density 8/10 · motion 3/10）。
+> 令牌唯一定义在 `frontend/src/index.css`，本文件是决策说明；两者冲突以 index.css 为准。
 
-## 视觉方向
-明亮、可信、数据优先。白/浅灰蓝底 + 品牌海军蓝；数据密集但可扫读；状态色语义化（绿/红/琥珀/灰）。
+## 核心原则
 
-## 颜色
-| Token | 值 | 用途 |
+1. **状态色只用于状态。** 正常/异常/不可达/失败四色不得用作装饰、分类或强调。非状态信息（触发方式、OS、判定）一律用中性 `.meta-tag`。
+2. **标题在一屏内只出现一次。** 顶栏不重复页面名，它只承载全局状态与操作。
+3. **表格是数据不是网格。** 只保留横向分隔线，无竖线、无 borderCell。行操作用文字按钮，实心按钮只留给页面主操作。
+4. **图表数据不足就不画图。** 有效数据点 < 4 时降级为汇总卡片（贴底平线 + 末端拉升属于误导性可视化）。
+5. **内网优先。** 不引入 Google Fonts 等外部资源，字体走系统栈。
+
+## 令牌
+
+三级 elevation：`--c-bg` < `--c-surface` < `--c-raised`。深色**不使用纯黑**，否则卡片边界消失。
+
+| 类别 | 浅色 | 深色 |
 |---|---|---|
-| `--color-bg` | `#F5F7FA` | 应用背景 |
-| `--color-surface` | `#FFFFFF` | 卡片/面板 |
-| `--color-surface-2` | `#FAFBFC` | 表头/次级填充 |
-| `--color-border` | `#E4E7EC` | 边框 |
-| `--color-text` | `#0F172A` | 主文本 |
-| `--color-text-2` | `#4B5563` | 次级文本 |
-| `--color-text-muted` | `#8A919F` | 弱化/占位 |
-| `--color-primary` | `#2563EB` | 主操作/CTA |
-| `--color-primary-hover` | `#3B82F6` | 主色 hover |
-| `--color-primary-soft` | `#EFF4FF` | 选中/强调填充 |
-| `--color-status-normal` | `#16A34A` | 正常 |
-| `--color-status-abnormal` | `#DC2626` | 异常 |
-| `--color-status-unreachable` | `#F59E0B` | 不可达 |
-| `--color-status-failed` | `#9CA3AF` | 检查失败 |
+| 背景 / 卡片 / 浮层 | `#f7f8fa` / `#ffffff` / `#ffffff` | `#0f1419` / `#171c22` / `#1e242b` |
+| 填充 / 描边 | `#f2f4f7` / `#e5e8ed` | `#232a32` / `#2a3138` |
+| 文本 主/次/弱 | `#1a1d21` / `#5a6069` / `#8b9096` | `#e6e9ec` / `#a8afb7` / `#737b84` |
+| 主色 | `#2563eb` | `#4a8cff`（深底需提亮） |
+| 正常 / 异常 | `#15803d` / `#c81e1e` | `#4ade80` / `#f87171` |
+| 不可达 / 失败 | `#c2410c` / `#57606a` | `#fb923c` / `#9ca3af` |
 
-## 字体
-- Latin：Inter（题/正文）；代码/证据/ID：Fira Code / JetBrains Mono。
-- 中文回退：PingFang SC / Microsoft YaHei / Noto Sans SC。
-- 基准 14px，行高 1.5；正文 ≥ 12px；KPI 数字用 tabular-nums。
-- 字号梯度：24 / 20 / 16 / 14 / 12。
+深色状态色统一提亮，保证 ≥ 4.5:1。
 
-## 圆角
-- 控件 6px；卡片 8px；模态/大面板 12px；登录大卡 14px。
+- **间距**（density 8）：4 / 8 / 12 / 16 / 20 / 24 / 32
+- **圆角**：控件 4，卡片 6–8，模态 12
+- **字号**：12 / 13 / 14 / 16 / 20 / 26；数字一律 `tabular-nums`
+- **字体**：系统栈（`-apple-system` → `PingFang SC` → `Microsoft YaHei`）
 
-## 间距（4 基刻度，密度 7/10）
-- 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48
-- 内容区 24px；卡片内边距 20px；栅格槽 16px；区块间隔 16–20px。
+## 骨架
 
-## 卡片
-白底 + 1px 边框 + `0 1px 2px` 投影；hover `0 6px 18px`；头部标题 15/600 + 副文 12 灰。
+- 侧栏 216px，按 **监控 / 配置 / 系统** 分组，组标题 11px 大写弱化
+- 顶栏 52px：左＝定时巡检状态，右＝主题切换 + 账号。**不放页面标题**
+- 内容区 padding 24，最大宽 1600
+- 并排卡片等高：Row 加 `.equal-row`（Arco 默认 `align-start` 会让子项按内容高）
 
-## 按钮
-主按钮实心品牌蓝 `#2563EB`，高 32/40，圆角 6，字号 14；统一 loading + cursor:pointer + 显式 focus 环。
+## 组件
 
-## 导航
-浅色侧栏 224px 白底 + 右分隔线；选中项品牌蓝 soft 填充 + 左侧 3px 指示条；顶栏 56px 白 + 面包屑/账号；菜单项高 40，hover 200ms。
+- **KPI 卡**：紧凑横排五等分，标签前置 7px 语义圆点，值 26px/650。**不使用左侧粗色条**
+- **卡片**：`.panel-card` = 1px 描边 + `--sh-sm`；头部 `.card-head` 带下分隔线，body padding 20
+- **状态标签**：`.status-tag` + `.status-<state>`，圆点 + 语义色 + 弱化底
+- **中性徽标**：`.meta-tag`，用于一切非状态信息
 
-## 动效 / 可达性
-交互过渡 150–300ms；遵循 prefers-reduced-motion；键盘焦点可见；图表多系列用线型区分（实/虚/点）不仅靠颜色；文本对比 ≥4.5:1。
+## 主题切换
+
+`body[arco-theme='dark']` 同源驱动 Arco 组件与自定义令牌，经 `useTheme()` 持久化到 localStorage。
+SVG 图表用 `var(--c-*)` 着色，切换即生效，无需重绘。
+
+## 可及性
+
+对比度 ≥ 4.5:1；焦点环 2px 主色 + 2px offset；图表多序列用线型/形状区分而非仅颜色；遵循 `prefers-reduced-motion`；过渡 150–300ms。

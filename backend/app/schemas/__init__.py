@@ -52,6 +52,7 @@ from app.schemas.inventory import (
     ServiceBase,
     ServiceCreate,
     ServiceOut,
+    ServiceUpdate,
 )
 from app.schemas.ops import AuditLogOut, ReportOut
 
@@ -73,6 +74,7 @@ __all__ = [
     "NodeOut",
     "ServiceBase",
     "ServiceCreate",
+    "ServiceUpdate",
     "ServiceOut",
     "ClusterBase",
     "ClusterCreate",

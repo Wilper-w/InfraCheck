@@ -40,9 +40,21 @@ from app.schemas import (
     PodOut,
     ServiceCreate,
     ServiceOut,
+    ServiceUpdate,
 )
 
 router = APIRouter(tags=["inventory"])
+
+
+def _validate_probe(svc: SystemService) -> None:
+    """部分更新后重新校验探测参数自洽（ServiceUpdate 各字段独立可选，管不了组合）。"""
+    if svc.probe_mode == "port" and svc.port is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="probe_mode=port requires a port")
+    if svc.probe_mode == "vip" and not (svc.probe_target or "").strip():
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="probe_mode=vip requires probe_target (the virtual IP)",
+        )
 
 
 # ---------------- environments ----------------
@@ -198,8 +210,45 @@ def create_service(
         name=body.name,
         port=body.port,
         enabled=body.enabled,
+        probe_mode=body.probe_mode,
+        probe_target=body.probe_target,
     )
     save_and_audit(db, svc, account, "service.create", f"created {body.name}")
+    return ServiceOut.model_validate(svc)
+
+
+@router.put("/environments/{env_id}/services/{service_id}", response_model=ServiceOut)
+def update_service(
+    env_id: int,
+    service_id: int,
+    body: ServiceUpdate,
+    db: Session = Depends(get_db),
+    account: str = Depends(current_account),
+):
+    svc = get_or_404(db, SystemService, service_id, "service", environment_id=env_id)
+    data = body.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(svc, k, v)
+    _validate_probe(svc)
+    db.commit()
+    db.refresh(svc)
+    write_audit(db, account, "service.update", f"service:{svc.id}", f"updated fields: {list(data)}")
+    return ServiceOut.model_validate(svc)
+
+
+@router.post("/environments/{env_id}/services/{service_id}/toggle", response_model=ServiceOut)
+def toggle_service(
+    env_id: int,
+    service_id: int,
+    db: Session = Depends(get_db),
+    account: str = Depends(current_account),
+):
+    """启用/停用。停用后该服务不再进入巡检目标（engine.resolve_targets 过滤）。"""
+    svc = get_or_404(db, SystemService, service_id, "service", environment_id=env_id)
+    svc.enabled = not svc.enabled
+    db.commit()
+    db.refresh(svc)
+    write_audit(db, account, "service.toggle", f"service:{svc.id}", f"enabled={svc.enabled}")
     return ServiceOut.model_validate(svc)
 
 

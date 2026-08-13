@@ -22,7 +22,7 @@ export function ErrorState({ message = '加载失败', onRetry }: { message?: st
       status="error"
       title="数据加载失败"
       subTitle={message}
-      extra={onRetry ? <button onClick={onRetry} style={{ color: 'var(--color-primary)', cursor: 'pointer', background: 'none', border: 'none', fontWeight: 600 }}>重新加载</button> : undefined}
+      extra={onRetry ? <button onClick={onRetry} style={{ color: 'var(--c-primary)', cursor: 'pointer', background: 'none', border: 'none', fontWeight: 600 }}>重新加载</button> : undefined}
     />
   );
 }
