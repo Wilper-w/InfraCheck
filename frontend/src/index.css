@@ -1,0 +1,309 @@
+/* ============================================================
+   InfraCheck 设计系统令牌 + 全局规范
+   详见 design-system/infracheck/MASTER.md
+   ============================================================ */
+:root {
+  /* 色彩（明亮 B2B） */
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #fafbfc;
+  --color-border: #e4e7ec;
+  --color-text: #0f172a;
+  --color-text-2: #4b5563;
+  --color-text-muted: #8a919f;
+  --color-primary: #2563eb;
+  --color-primary-hover: #3b82f6;
+  --color-primary-soft: #eff4ff;
+  --color-status-normal: #16a34a;
+  --color-status-abnormal: #dc2626;
+  --color-status-unreachable: #f59e0b;
+  --color-status-failed: #9ca3af;
+
+  /* 圆角 */
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+  --radius-hero: 14px;
+
+  /* 阴影 */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-card-hover: 0 6px 18px rgba(31, 56, 88, 0.1);
+  --shadow-modal: 0 16px 48px rgba(15, 23, 42, 0.12);
+
+  /* 字号 / 行高 */
+  --font-base: 14px;
+  --font-body-line: 1.5;
+
+  /* Arco 品牌主色覆盖 → 统一主操作色（channel 三元组，#2563EB = 37,99,235） */
+  --primary-6: 37, 99, 235;
+  --primary-5: 56, 122, 246;
+  --primary-7: 29, 79, 215;
+}
+
+/* Arco 的 --primary-* 定义在 body 上，需同源晚序覆盖才能改主按钮/选中色 */
+body {
+  --primary-6: 37, 99, 235;
+  --primary-5: 56, 122, 246;
+  --primary-7: 29, 79, 215;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC',
+    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: var(--font-base);
+  line-height: var(--font-body-line);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 数字等宽对齐 */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 页面容器 */
+.app-content {
+  padding: 24px;
+  overflow: auto;
+  background: var(--color-bg);
+}
+.page-wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* 页头 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.page-header .page-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--color-text);
+}
+.page-header .page-sub {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* 卡片 */
+.panel-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.panel-card .arco-card-body {
+  padding: 20px;
+}
+
+/* KPI 卡片 */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 18px 20px;
+  min-height: 190px;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: minmax(190px, auto);
+  gap: 12px;
+  height: 100%;
+}
+@media (max-width: 767px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 趋势与环境对比卡片保持同一行等高，避免底部出现空白区域 */
+.dashboard-secondary-row > .arco-col {
+  display: flex;
+}
+.dashboard-secondary-card {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+.kpi-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--kpi-color, var(--color-primary));
+}
+.kpi-card .kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kpi-card .kpi-label {
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+.kpi-card .kpi-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--kpi-color);
+  background: color-mix(in srgb, var(--kpi-color) 12%, transparent);
+}
+.kpi-card .kpi-value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-top: 10px;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-card .kpi-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* 次要文本 */
+.sub-text {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* 表格表头 */
+.arco-table-th {
+  background: var(--color-surface-2) !important;
+  font-weight: 600;
+  color: var(--color-text-2) !important;
+}
+
+/* 状态标签 */
+.status-tag {
+  min-width: 64px;
+  text-align: center;
+  justify-content: center;
+}
+
+/* 导航：浅色侧栏 + 选中指示 */
+.app-sider {
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+.app-sider .arco-menu {
+  background: transparent;
+}
+.app-sider .arco-menu-item {
+  height: 40px;
+  line-height: 40px;
+  border-radius: var(--radius-control);
+  margin: 2px 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.app-sider .arco-menu-selected {
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary) !important;
+  position: relative;
+}
+.app-sider .arco-menu-selected::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+.app-sider .arco-menu-item:hover {
+  background: var(--color-surface-2);
+}
+
+/* 皮肤 Logo 区 */
+.app-logo {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* 交互焦点 + 可及性 */
+button,
+a,
+[role='button'],
+.arco-menu-item {
+  outline-offset: 2px;
+}
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 表格列可拖拽调宽 */
+.arco-table-th-resize-handle {
+  width: 6px !important;
+  right: -3px !important;
+}
+.arco-table-th-resize-handle:hover,
+.arco-table-th-resize-handle-line {
+  background: var(--color-primary) !important;
+  opacity: 0.5;
+}
+.arco-table-th-resize-handle:hover {
+  opacity: 1;
+}
+
+/* 报告 iframe 自适应 */
+.report-modal .arco-modal {
+  width: 92vw !important;
+  max-width: 1200px;
+}
+.report-modal iframe {
+  min-height: 70vh;
+}
+
+/* 表格内容不溢出 */
+.arco-table-cell {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
