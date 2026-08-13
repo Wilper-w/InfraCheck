@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Button, Message, Typography } from '@arco-design/web-react';
+import { Input, Button, Message } from '@arco-design/web-react';
 import { IconUser } from '@arco-design/web-react/icon';
 import { authApi } from '../api';
-
-const { Paragraph } = Typography;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -38,78 +36,77 @@ export default function Login() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 16px',
-        background:
-          'linear-gradient(160deg, #eef4ff 0%, #f7faff 45%, #eaf2ff 100%)',
+        background: 'var(--c-bg)',
       }}
     >
-      <div style={{ width: 420 }}>
-        {/* 品牌区 */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+      <div style={{ width: 400 }}>
+        <div style={{ textAlign: 'center', marginBottom: 'var(--s-8)' }}>
           <div
             style={{
-              width: 60,
-              height: 60,
-              margin: '0 auto 18px',
-              borderRadius: 16,
-              background: 'linear-gradient(135deg,#165dff,#3c7dff)',
+              width: 48,
+              height: 48,
+              margin: '0 auto var(--s-4)',
+              borderRadius: 'var(--r-xl)',
+              background: 'var(--c-primary)',
               color: '#fff',
-              fontSize: 26,
+              fontSize: 18,
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 10px 30px rgba(22,93,255,0.25)',
+              letterSpacing: '-0.5px',
             }}
           >
             IC
           </div>
-          <div style={{ color: '#1d2129', fontSize: 24, fontWeight: 700, letterSpacing: 1 }}>
+          <div style={{ color: 'var(--c-text)', fontSize: 22, fontWeight: 650, letterSpacing: '-0.01em' }}>
             InfraCheck 巡检平台
           </div>
-          <Paragraph
-            style={{
-              color: '#6b7280',
-              marginTop: 10,
-              marginBottom: 0,
-              fontSize: 14,
-            }}
-          >
+          <div style={{ color: 'var(--c-text-muted)', marginTop: 6, fontSize: 'var(--fs-md)' }}>
             多环境自动化巡检 · 健康看板 · 双格式报告
-          </Paragraph>
+          </div>
         </div>
 
-        {/* 登录卡片 */}
         <div
           style={{
-            background: '#ffffff',
-            borderRadius: 14,
-            padding: '32px 30px 26px',
-            border: '1px solid #e8edf5',
-            boxShadow: '0 16px 48px rgba(31,56,88,0.08)',
+            background: 'var(--c-surface)',
+            borderRadius: 'var(--r-xl)',
+            padding: 'var(--s-8) var(--s-8) var(--s-6)',
+            border: '1px solid var(--c-border)',
+            boxShadow: 'var(--sh-md)',
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: 17, marginBottom: 6 }}>账号登录</div>
-          <div className="sub-text" style={{ marginBottom: 24 }}>
+          <div style={{ fontWeight: 600, fontSize: 'var(--fs-lg)', marginBottom: 4 }}>账号登录</div>
+          <div className="sub-text" style={{ marginBottom: 'var(--s-6)' }}>
             使用企业微信（云效）账号，未授权请联系平台管理员开通
           </div>
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 8 }}>账号</div>
-            <Input
-              prefix={<IconUser />}
-              placeholder="输入巡检人账号，如 zhangsan"
-              value={account}
-              onChange={setAccount}
-              onPressEnter={handleSubmit}
-              size="large"
-              autoComplete="username"
-            />
-            <Button type="primary" long size="large" loading={loading} onClick={handleSubmit} style={{ marginTop: 20 }}>
-              登录
-            </Button>
-          </div>
+
+          <label htmlFor="login-account" style={{ display: 'block', fontWeight: 500, fontSize: 'var(--fs-md)', marginBottom: 6 }}>
+            账号
+          </label>
+          <Input
+            id="login-account"
+            prefix={<IconUser />}
+            placeholder="输入巡检人账号，如 zhangsan"
+            value={account}
+            onChange={setAccount}
+            onPressEnter={handleSubmit}
+            size="large"
+            autoComplete="username"
+          />
+          <Button
+            type="primary"
+            long
+            size="large"
+            loading={loading}
+            onClick={handleSubmit}
+            style={{ marginTop: 'var(--s-5)' }}
+          >
+            登录
+          </Button>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 18 }} className="sub-text">
+        <div style={{ textAlign: 'center', marginTop: 'var(--s-5)' }} className="sub-text">
           InfraCheck · 自动化巡检与报告平台
         </div>
       </div>

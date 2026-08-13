@@ -1,11 +1,18 @@
 """Environment, node, service, cluster, namespace, pod routes (CONTRACT §4)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.api._common import page_params, write_audit
+from app.api._common import (
+    delete_and_audit,
+    get_or_404,
+    page_params,
+    paginate,
+    save_and_audit,
+    write_audit,
+)
 from app.auth import current_account
 from app.db import get_db
 from app.models import (
@@ -15,7 +22,6 @@ from app.models import (
     Namespace,
     PhysicalNode,
     Pod,
-    Run,
     SystemService,
 )
 from app.schemas import (
@@ -34,9 +40,21 @@ from app.schemas import (
     PodOut,
     ServiceCreate,
     ServiceOut,
+    ServiceUpdate,
 )
 
 router = APIRouter(tags=["inventory"])
+
+
+def _validate_probe(svc: SystemService) -> None:
+    """部分更新后重新校验探测参数自洽（ServiceUpdate 各字段独立可选，管不了组合）。"""
+    if svc.probe_mode == "port" and svc.port is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="probe_mode=port requires a port")
+    if svc.probe_mode == "vip" and not (svc.probe_target or "").strip():
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="probe_mode=vip requires probe_target (the virtual IP)",
+        )
 
 
 # ---------------- environments ----------------
@@ -46,10 +64,7 @@ def list_environments(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    q = db.query(Environment).order_by(Environment.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[EnvironmentOut.model_validate(e) for e in items], total=total, **page)
+    return paginate(db.query(Environment).order_by(Environment.id), page, EnvironmentOut)
 
 
 @router.post("/environments", response_model=EnvironmentOut, status_code=201)
@@ -61,10 +76,7 @@ def create_environment(
     if db.query(Environment).filter(Environment.name == body.name).first():
         raise HTTPException(status.HTTP_409_CONFLICT, detail="environment name already exists")
     env = Environment(name=body.name, os_flavor=body.os_flavor, description=body.description)
-    db.add(env)
-    db.commit()
-    db.refresh(env)
-    write_audit(db, account, "environment.create", f"environment:{env.id}", f"created {body.name}")
+    save_and_audit(db, env, account, "environment.create", f"created {body.name}")
     return EnvironmentOut.model_validate(env)
 
 
@@ -75,9 +87,7 @@ def update_environment(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    env = db.get(Environment, env_id)
-    if not env:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    env = get_or_404(db, Environment, env_id, "environment")
     data = body.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(env, k, v)
@@ -93,12 +103,8 @@ def delete_environment(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    env = db.get(Environment, env_id)
-    if not env:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
-    db.delete(env)
-    db.commit()
-    write_audit(db, account, "environment.delete", f"environment:{env_id}", f"deleted {env.name}")
+    env = get_or_404(db, Environment, env_id, "environment")
+    delete_and_audit(db, env, account, "environment.delete", f"deleted {env.name}")
 
 
 @router.get("/environments/{env_id}/summary", response_model=EnvironmentSummary)
@@ -107,9 +113,7 @@ def environment_summary(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    env = db.get(Environment, env_id)
-    if not env:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    env = get_or_404(db, Environment, env_id, "environment")
     # most recent run that has results for this environment
     latest_run = (
         db.query(CheckResult.run_id)
@@ -145,12 +149,9 @@ def list_nodes(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    if not db.get(Environment, env_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    get_or_404(db, Environment, env_id, "environment")
     q = db.query(PhysicalNode).filter(PhysicalNode.environment_id == env_id).order_by(PhysicalNode.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[NodeOut.model_validate(n) for n in items], total=total, **page)
+    return paginate(q, page, NodeOut)
 
 
 @router.post("/environments/{env_id}/nodes", response_model=NodeOut, status_code=201)
@@ -160,19 +161,14 @@ def create_node(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    env = db.get(Environment, env_id)
-    if not env:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    env = get_or_404(db, Environment, env_id, "environment")
     node = PhysicalNode(
         environment_id=env_id,
         hostname=body.hostname,
         ip=body.ip,
         os_flavor=body.os_flavor or env.os_flavor,
     )
-    db.add(node)
-    db.commit()
-    db.refresh(node)
-    write_audit(db, account, "node.create", f"node:{node.id}", f"created {body.hostname}")
+    save_and_audit(db, node, account, "node.create", f"created {body.hostname}")
     return NodeOut.model_validate(node)
 
 
@@ -183,12 +179,8 @@ def delete_node(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    node = db.get(PhysicalNode, node_id)
-    if not node or node.environment_id != env_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="node not found")
-    db.delete(node)
-    db.commit()
-    write_audit(db, account, "node.delete", f"node:{node_id}", f"deleted {node.hostname}")
+    node = get_or_404(db, PhysicalNode, node_id, "node", environment_id=env_id)
+    delete_and_audit(db, node, account, "node.delete", f"deleted {node.hostname}")
 
 
 # ---------------- services ----------------
@@ -199,12 +191,9 @@ def list_services(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    if not db.get(Environment, env_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    get_or_404(db, Environment, env_id, "environment")
     q = db.query(SystemService).filter(SystemService.environment_id == env_id).order_by(SystemService.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[ServiceOut.model_validate(s) for s in items], total=total, **page)
+    return paginate(q, page, ServiceOut)
 
 
 @router.post("/environments/{env_id}/services", response_model=ServiceOut, status_code=201)
@@ -214,19 +203,52 @@ def create_service(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    if not db.get(Environment, env_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    get_or_404(db, Environment, env_id, "environment")
     svc = SystemService(
         environment_id=env_id,
         node_id=body.node_id,
         name=body.name,
         port=body.port,
         enabled=body.enabled,
+        probe_mode=body.probe_mode,
+        probe_target=body.probe_target,
     )
-    db.add(svc)
+    save_and_audit(db, svc, account, "service.create", f"created {body.name}")
+    return ServiceOut.model_validate(svc)
+
+
+@router.put("/environments/{env_id}/services/{service_id}", response_model=ServiceOut)
+def update_service(
+    env_id: int,
+    service_id: int,
+    body: ServiceUpdate,
+    db: Session = Depends(get_db),
+    account: str = Depends(current_account),
+):
+    svc = get_or_404(db, SystemService, service_id, "service", environment_id=env_id)
+    data = body.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(svc, k, v)
+    _validate_probe(svc)
     db.commit()
     db.refresh(svc)
-    write_audit(db, account, "service.create", f"service:{svc.id}", f"created {body.name}")
+    write_audit(db, account, "service.update", f"service:{svc.id}", f"updated fields: {list(data)}")
+    return ServiceOut.model_validate(svc)
+
+
+@router.post("/environments/{env_id}/services/{service_id}/toggle", response_model=ServiceOut)
+def toggle_service(
+    env_id: int,
+    service_id: int,
+    db: Session = Depends(get_db),
+    account: str = Depends(current_account),
+):
+    """启用/停用。停用后该服务不再进入巡检目标（engine.resolve_targets 过滤）。"""
+    svc = get_or_404(db, SystemService, service_id, "service", environment_id=env_id)
+    svc.enabled = not svc.enabled
+    db.commit()
+    db.refresh(svc)
+    write_audit(db, account, "service.toggle", f"service:{svc.id}", f"enabled={svc.enabled}")
     return ServiceOut.model_validate(svc)
 
 
@@ -237,12 +259,8 @@ def delete_service(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    svc = db.get(SystemService, service_id)
-    if not svc or svc.environment_id != env_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="service not found")
-    db.delete(svc)
-    db.commit()
-    write_audit(db, account, "service.delete", f"service:{service_id}", f"deleted {svc.name}")
+    svc = get_or_404(db, SystemService, service_id, "service", environment_id=env_id)
+    delete_and_audit(db, svc, account, "service.delete", f"deleted {svc.name}")
 
 
 # ---------------- clusters ----------------
@@ -253,12 +271,9 @@ def list_clusters(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    if not db.get(Environment, env_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
+    get_or_404(db, Environment, env_id, "environment")
     q = db.query(Cluster).filter(Cluster.environment_id == env_id).order_by(Cluster.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[ClusterOut.model_validate(c) for c in items], total=total, **page)
+    return paginate(q, page, ClusterOut)
 
 
 @router.post("/environments/{env_id}/clusters", response_model=ClusterOut, status_code=201)
@@ -268,15 +283,9 @@ def create_cluster(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    if not db.get(Environment, env_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
-    cluster = Cluster(
-        environment_id=env_id, name=body.name, api_endpoint=body.api_endpoint
-    )
-    db.add(cluster)
-    db.commit()
-    db.refresh(cluster)
-    write_audit(db, account, "cluster.create", f"cluster:{cluster.id}", f"created {body.name}")
+    get_or_404(db, Environment, env_id, "environment")
+    cluster = Cluster(environment_id=env_id, name=body.name, api_endpoint=body.api_endpoint)
+    save_and_audit(db, cluster, account, "cluster.create", f"created {body.name}")
     return ClusterOut.model_validate(cluster)
 
 
@@ -288,12 +297,9 @@ def list_namespaces(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    if not db.get(Cluster, cluster_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="cluster not found")
+    get_or_404(db, Cluster, cluster_id, "cluster")
     q = db.query(Namespace).filter(Namespace.cluster_id == cluster_id).order_by(Namespace.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[NamespaceOut.model_validate(n) for n in items], total=total, **page)
+    return paginate(q, page, NamespaceOut)
 
 
 @router.post("/clusters/{cluster_id}/namespaces", response_model=NamespaceOut, status_code=201)
@@ -303,13 +309,9 @@ def create_namespace(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    if not db.get(Cluster, cluster_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="cluster not found")
+    get_or_404(db, Cluster, cluster_id, "cluster")
     ns = Namespace(cluster_id=cluster_id, name=body.name)
-    db.add(ns)
-    db.commit()
-    db.refresh(ns)
-    write_audit(db, account, "namespace.create", f"namespace:{ns.id}", f"created {body.name}")
+    save_and_audit(db, ns, account, "namespace.create", f"created {body.name}")
     return NamespaceOut.model_validate(ns)
 
 
@@ -321,12 +323,9 @@ def list_pods(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    if not db.get(Namespace, ns_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="namespace not found")
+    get_or_404(db, Namespace, ns_id, "namespace")
     q = db.query(Pod).filter(Pod.namespace_id == ns_id).order_by(Pod.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[PodOut.model_validate(p) for p in items], total=total, **page)
+    return paginate(q, page, PodOut)
 
 
 @router.post("/namespaces/{ns_id}/pods", response_model=PodOut, status_code=201)
@@ -336,11 +335,7 @@ def create_pod(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    if not db.get(Namespace, ns_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="namespace not found")
+    get_or_404(db, Namespace, ns_id, "namespace")
     pod = Pod(namespace_id=ns_id, name=body.name, labels=body.labels)
-    db.add(pod)
-    db.commit()
-    db.refresh(pod)
-    write_audit(db, account, "pod.create", f"pod:{pod.id}", f"created {body.name}")
+    save_and_audit(db, pod, account, "pod.create", f"created {body.name}")
     return PodOut.model_validate(pod)

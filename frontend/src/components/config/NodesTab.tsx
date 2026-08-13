@@ -1,4 +1,3 @@
-import { useEffect, useState, useCallback } from 'react';
 import {
   Table,
   Button,
@@ -6,7 +5,6 @@ import {
   Form,
   Input,
   Select,
-  Message,
   Popconfirm,
   Tag,
   Typography,
@@ -14,88 +12,27 @@ import {
 } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
 import { IconPlus } from '@arco-design/web-react/icon';
-import { envApi, nodeApi } from '../../api';
-import type { Environment, PhysicalNode, NodeInput } from '../../types';
+import { nodeApi } from '../../api';
+import { useCrudTable } from '../../hooks/useCrudTable';
+import { useEnvironments } from '../../hooks/useEnvironments';
+import type { PhysicalNode, NodeInput } from '../../types';
 
 const { Text } = Typography;
 const FormItem = Form.Item;
 
 export default function NodesTab() {
-  const [envs, setEnvs] = useState<Environment[]>([]);
-  const [envId, setEnvId] = useState<number | undefined>();
-  const [nodes, setNodes] = useState<PhysicalNode[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [form] = Form.useForm<NodeInput>();
+  const { envs, envId, setEnvId, currentEnv } = useEnvironments();
 
-  const loadEnvs = useCallback(async () => {
-    try {
-      const resp = await envApi.list({ page: 1, page_size: 100 });
-      setEnvs(resp.items);
-      if (!envId && resp.items.length > 0) setEnvId(resp.items[0].id);
-    } catch {
-      /* 拦截器已提示 */
-    }
-  }, [envId]);
-
-  useEffect(() => {
-    loadEnvs();
-  }, [loadEnvs]);
-
-  const loadNodes = useCallback(
-    async (p: number) => {
-      if (envId === undefined) return;
-      setLoading(true);
-      try {
-        const resp = await nodeApi.list(envId, { page: p, page_size: 10 });
-        setNodes(resp.items);
-        setTotal(resp.total);
-      } catch {
-        /* 拦截器已提示 */
-      } finally {
-        setLoading(false);
-      }
+  const crud = useCrudTable<PhysicalNode, NodeInput>({
+    api: {
+      list: (params) => nodeApi.list(envId!, params),
+      create: (data) => nodeApi.create(envId!, data),
+      remove: (nodeId) => nodeApi.remove(envId!, nodeId),
     },
-    [envId],
-  );
-
-  useEffect(() => {
-    setPage(1);
-    loadNodes(1);
-  }, [envId, loadNodes]);
-
-  const openCreate = () => {
-    form.resetFields();
-    setVisible(true);
-  };
-
-  const handleSubmit = async () => {
-    if (envId === undefined) return;
-    const values = await form.validate();
-    try {
-      await nodeApi.create(envId, values);
-      Message.success('物理机已添加');
-      setVisible(false);
-      loadNodes(page);
-    } catch {
-      /* 拦截器已提示 */
-    }
-  };
-
-  const handleDelete = async (nodeId: number) => {
-    if (envId === undefined) return;
-    try {
-      await nodeApi.remove(envId, nodeId);
-      Message.success('物理机已删除');
-      loadNodes(page);
-    } catch {
-      /* 拦截器已提示 */
-    }
-  };
-
-  const currentEnv = envs.find((e) => e.id === envId);
+    labels: { created: '物理机已添加', deleted: '物理机已删除' },
+    ready: envId !== undefined,
+    resetKey: envId,
+  });
 
   const columns: TableColumnProps<PhysicalNode>[] = [
     { title: 'ID', dataIndex: 'id', width: 70 },
@@ -121,7 +58,7 @@ export default function NodesTab() {
       width: 100,
       resizable: true,
       render: (_: unknown, record: PhysicalNode) => (
-        <Popconfirm title="确认删除该物理机？" onOk={() => handleDelete(record.id)}>
+        <Popconfirm title="确认删除该物理机？" onOk={() => crud.remove(record.id)}>
           <Button type="text" size="small" status="danger">
             删除
           </Button>
@@ -151,7 +88,7 @@ export default function NodesTab() {
             ))}
           </Select>
         </div>
-        <Button type="primary" disabled={envId === undefined} icon={<IconPlus />} onClick={openCreate}>
+        <Button type="primary" disabled={envId === undefined} icon={<IconPlus />} onClick={crud.openCreate}>
           新建物理机
         </Button>
       </div>
@@ -161,29 +98,22 @@ export default function NodesTab() {
       ) : (
         <Table
           rowKey="id"
-          loading={loading}
+          loading={crud.loading}
           columns={columns}
-          data={nodes}
-          borderCell
-          pagination={{
-            current: page,
-            pageSize: 10,
-            total,
-            showTotal: true,
-            onChange: setPage,
-          }}
+          data={crud.items}
+          pagination={crud.pagination}
           noDataElement={<Empty description={`环境 ${currentEnv?.name ?? ''} 暂无物理机`} />}
         />
       )}
 
       <Modal
         title={`新建物理机 · ${currentEnv?.name ?? ''}`}
-        visible={visible}
-        onCancel={() => setVisible(false)}
-        onOk={handleSubmit}
+        visible={crud.visible}
+        onCancel={() => crud.setVisible(false)}
+        onOk={crud.submit}
         unmountOnExit
       >
-        <Form form={form} layout="vertical">
+        <Form form={crud.form} layout="vertical">
           <FormItem label="主机名" field="hostname" rules={[{ required: true, message: '请输入主机名' }]}>
             <Input placeholder="如 node-env-01-1" />
           </FormItem>

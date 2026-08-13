@@ -60,6 +60,9 @@ export interface NodeInput {
 }
 
 // system services
+/** 探测方式：systemd 单元状态 | 端口监听 | VIP 绑定（keepalived 等） */
+export type ProbeMode = 'systemd' | 'port' | 'vip';
+
 export interface SystemService {
   id: number;
   environment_id: number;
@@ -67,12 +70,16 @@ export interface SystemService {
   name: string;
   port: number | null;
   enabled: boolean;
+  probe_mode: ProbeMode;
+  probe_target: string | null;
 }
 export interface ServiceInput {
   name: string;
   node_id?: number | null;
   port?: number | null;
   enabled?: boolean;
+  probe_mode?: ProbeMode;
+  probe_target?: string | null;
 }
 
 // check items

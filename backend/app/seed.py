@@ -25,7 +25,14 @@ ENV_DEFS = [
 ]
 
 SERVICES = ["nginx", "keepalived", "mysql", "haproxy"]
-SERVICE_PORTS = {"nginx": 80, "keepalived": 0, "mysql": 3306, "haproxy": 9999}
+# 每个服务按其真实形态选择探测方式（CONTRACT §3 probe_mode）：
+# keepalived 不监听端口而是漂 VIP，进程活着但 VIP 不在本机 == 不正常，故用 vip 模式。
+SERVICE_PROBES: dict[str, tuple[str, int | None]] = {
+    "nginx": ("port", 80),
+    "keepalived": ("vip", None),
+    "mysql": ("port", 3306),
+    "haproxy": ("systemd", 9999),
+}
 
 # env-01 gets richer k8s; others get one cluster + default ns + few pods
 POD_NAMES = ["etcd", "one-api", "new-api", "redis", "controller", "scheduler"]
@@ -78,13 +85,16 @@ def seed(db: Session) -> None:
             .first()
         )
         for svc in SERVICES:
+            mode, port = SERVICE_PROBES[svc]
             db.add(
                 SystemService(
                     environment_id=env.id,
                     node_id=first_node.id if first_node else None,
                     name=svc,
-                    port=SERVICE_PORTS.get(svc),
+                    port=port,
                     enabled=True,
+                    probe_mode=mode,
+                    probe_target=f"10.0.{idx}.250" if mode == "vip" else None,
                 )
             )
 

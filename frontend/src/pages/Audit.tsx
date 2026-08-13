@@ -117,7 +117,6 @@ export default function Audit() {
           loading={loading}
           columns={columns}
           data={logs}
-          borderCell
           pagination={{
             current: page,
             pageSize: 10,

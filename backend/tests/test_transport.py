@@ -71,7 +71,7 @@ def test_ssh_classify_maps_exit_code_to_status():
 
 
 def test_ssh_command_dispatched_by_target_type():
-    from app.runner import _command_for
+    from app.runner.ssh import _command_for
 
     assert _command_for(_item(), _target(object_type="service", object_name="nginx@env1")) == "systemctl is-active nginx"
     assert _command_for(_item(), _target()) == "hostname && uptime"

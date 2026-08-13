@@ -74,6 +74,10 @@ export const serviceApi = {
       .then((r) => r.data),
   create: (envId: number, data: ServiceInput) =>
     api.post<SystemService>(`/environments/${envId}/services`, data).then((r) => r.data),
+  update: (envId: number, serviceId: number, data: Partial<ServiceInput>) =>
+    api.put<SystemService>(`/environments/${envId}/services/${serviceId}`, data).then((r) => r.data),
+  toggle: (envId: number, serviceId: number) =>
+    api.post<SystemService>(`/environments/${envId}/services/${serviceId}/toggle`).then((r) => r.data),
   remove: (envId: number, serviceId: number) =>
     api.delete(`/environments/${envId}/services/${serviceId}`).then((r) => r.data),
 };

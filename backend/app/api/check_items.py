@@ -1,10 +1,17 @@
 """Check item routes (CONTRACT §4 /check-items)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api._common import page_params, write_audit
+from app.api._common import (
+    delete_and_audit,
+    get_or_404,
+    page_params,
+    paginate,
+    save_and_audit,
+    write_audit,
+)
 from app.auth import current_account
 from app.db import get_db
 from app.models import CheckItem
@@ -31,10 +38,7 @@ def list_check_items(
         q = q.filter(CheckItem.enabled.is_(enabled))
     if target_type:
         q = q.filter(CheckItem.target_type == target_type)
-    q = q.order_by(CheckItem.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[CheckItemOut.model_validate(i) for i in items], total=total, **page)
+    return paginate(q.order_by(CheckItem.id), page, CheckItemOut)
 
 
 @router.post("", response_model=CheckItemOut, status_code=201)
@@ -51,10 +55,7 @@ def create_check_item(
         enabled=True,
         config=body.config,
     )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    write_audit(db, account, "check_item.create", f"check_item:{item.id}", f"created {body.name}")
+    save_and_audit(db, item, account, "check_item.create", f"created {body.name}")
     return CheckItemOut.model_validate(item)
 
 
@@ -65,9 +66,7 @@ def update_check_item(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    item = db.get(CheckItem, item_id)
-    if not item:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="check item not found")
+    item = get_or_404(db, CheckItem, item_id, "check item")
     data = body.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(item, k, v)
@@ -83,12 +82,8 @@ def delete_check_item(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    item = db.get(CheckItem, item_id)
-    if not item:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="check item not found")
-    db.delete(item)
-    db.commit()
-    write_audit(db, account, "check_item.delete", f"check_item:{item_id}", f"deleted {item.name}")
+    item = get_or_404(db, CheckItem, item_id, "check item")
+    delete_and_audit(db, item, account, "check_item.delete", f"deleted {item.name}")
 
 
 @router.post("/{item_id}/toggle", response_model=CheckItemOut)
@@ -97,9 +92,7 @@ def toggle_check_item(
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
 ):
-    item = db.get(CheckItem, item_id)
-    if not item:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="check item not found")
+    item = get_or_404(db, CheckItem, item_id, "check item")
     item.enabled = not item.enabled
     db.commit()
     db.refresh(item)
