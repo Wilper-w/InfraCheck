@@ -1,0 +1,33 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: sqlite:////app/data/infracheck.db
+      REPORTS_OUT_DIR: /app/reports_out
+      RUNNER_TRANSPORT: dryrun          # switch to ssh + set JUMP_* for live inspection
+      AUTH_MODE: mock                   # switch to wecom for 企业微信 SSO
+      SCHEDULER_ENABLED: "true"
+      # Live SSH transport (jump-host hub) — fill in for real inspection:
+      # JUMP_HOST: your-jump-host
+      # JUMP_USER: root
+      # JUMP_KEY: /run/secrets/jump_key    # mount or bind the key
+      # SSH_USER: root
+      # RUNNER_TRANSPORT: ssh
+    volumes:
+      - backend_data:/app/data
+      - backend_reports:/app/reports_out
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  backend_reports:
