@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 
-from app.api._common import page_params
+from app.api._common import get_or_404, page_params, paginate
 from app.auth import current_account
 from app.db import get_db
 from app.models import AuditLog, Report
@@ -24,10 +24,7 @@ def list_reports(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    q = db.query(Report).order_by(Report.id.desc())
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[ReportOut.model_validate(r) for r in items], total=total, **page)
+    return paginate(db.query(Report).order_by(Report.id.desc()), page, ReportOut)
 
 
 @reports_router.get("/{report_id}/html", response_class=HTMLResponse)
@@ -36,9 +33,7 @@ def get_report_html(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    report = db.get(Report, report_id)
-    if not report:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="report not found")
+    report = get_or_404(db, Report, report_id, "report")
     content = Path(report.html_path).read_text(encoding="utf-8") if report.html_path else ""
     return HTMLResponse(content=content)
 
@@ -49,9 +44,7 @@ def get_report_markdown(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    report = db.get(Report, report_id)
-    if not report:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="report not found")
+    report = get_or_404(db, Report, report_id, "report")
     content = Path(report.md_path).read_text(encoding="utf-8") if report.md_path else ""
     return PlainTextResponse(content=content)
 
@@ -67,7 +60,4 @@ def list_audit(
     q = db.query(AuditLog)
     if actor:
         q = q.filter(AuditLog.actor == actor)
-    q = q.order_by(AuditLog.id.desc())
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[AuditLogOut.model_validate(a) for a in items], total=total, **page)
+    return paginate(q.order_by(AuditLog.id.desc()), page, AuditLogOut)

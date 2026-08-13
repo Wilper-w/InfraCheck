@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.api._common import page_params, write_audit
+from app.api._common import get_or_404, page_params, paginate, write_audit
 from app.auth import current_account
 from app.db import get_db
 from app.engine import execute_run
@@ -33,10 +33,10 @@ def trigger_run(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="environment_id required for scope=environment")
     if body.scope == "check" and body.check_item_id is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="check_item_id required for scope=check")
-    if body.environment_id is not None and not db.get(Environment, body.environment_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="environment not found")
-    if body.check_item_id is not None and not db.get(CheckItem, body.check_item_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="check item not found")
+    if body.environment_id is not None:
+        get_or_404(db, Environment, body.environment_id, "environment")
+    if body.check_item_id is not None:
+        get_or_404(db, CheckItem, body.check_item_id, "check item")
 
     run = Run(trigger="manual", triggered_by=account, status="running")
     db.add(run)
@@ -64,10 +64,7 @@ def list_runs(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    q = db.query(Run).order_by(Run.id.desc())
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[RunOut.model_validate(r) for r in items], total=total, **page)
+    return paginate(db.query(Run).order_by(Run.id.desc()), page, RunOut)
 
 
 @router.get("/runs/{run_id}", response_model=RunDetail)
@@ -76,9 +73,7 @@ def get_run(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    run = db.get(Run, run_id)
-    if not run:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="run not found")
+    run = get_or_404(db, Run, run_id, "run")
     rows = (
         db.query(CheckResult.status, func.count(CheckResult.id))
         .filter(CheckResult.run_id == run_id)
@@ -106,17 +101,13 @@ def get_run_results(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    if not db.get(Run, run_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="run not found")
+    get_or_404(db, Run, run_id, "run")
     q = db.query(CheckResult).filter(CheckResult.run_id == run_id)
     if status_filter:
         q = q.filter(CheckResult.status == status_filter)
     if object_type:
         q = q.filter(CheckResult.object_type == object_type)
-    q = q.order_by(CheckResult.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[CheckResultOut.model_validate(r) for r in items], total=total, **page)
+    return paginate(q.order_by(CheckResult.id), page, CheckResultOut)
 
 
 @router.get("/results/latest", response_model=Paginated)
@@ -130,6 +121,4 @@ def latest_results(
     if not latest:
         return Paginated(items=[], total=0, **page)
     q = db.query(CheckResult).filter(CheckResult.run_id == latest.id).order_by(CheckResult.id)
-    total = q.count()
-    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
-    return Paginated(items=[CheckResultOut.model_validate(r) for r in items], total=total, **page)
+    return paginate(q, page, CheckResultOut)
