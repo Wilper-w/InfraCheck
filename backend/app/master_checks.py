@@ -3,7 +3,7 @@
 Each returns a POSIX shell script that runs on a master node. Exit 0 = passes
 the expected criterion; exit 1 = check ran but criterion not met (abnormal).
 Diagnostics print to stdout so they survive as `evidence`. DB auth uses the
-documented default `root:Cl0ud!P@ssw0rd` (xunjian.md), overridable per-master.
+password supplied from the gitignored .env (MYSQL_DEFAULT_PW), injected by the collector.
 """
 from __future__ import annotations
 
@@ -60,10 +60,10 @@ fi
 """
 
 
-# 4. mysql cluster (any 1 master): wsrep_* statuses (default auth root:Cl0ud!P@ssw0rd).
+# 4. mysql cluster (any 1 master): wsrep_* statuses (auth: MYSQL_PW from .env).
 def mysql_cluster() -> str:
     return r"""
-export MYSQL_PW=${MYSQL_PW:-Cl0ud!P@ssw0rd}
+[ -n "$MYSQL_PW" ] || { echo "MYSQL_PW_NOT_SET: 请在 .env 填 MYSQL_DEFAULT_PW"; exit 1; }
 VARS=$(mysql -uroot -p"$MYSQL_PW" -N -e "SHOW GLOBAL STATUS WHERE Variable_name IN ('wsrep_local_state_comment','wsrep_evs_state','wsrep_cluster_size','wsrep_cluster_status');" 2>/dev/null || \
        mysql -uroot -N -e "SHOW GLOBAL STATUS WHERE Variable_name IN ('wsrep_local_state_comment','wsrep_evs_state','wsrep_cluster_size','wsrep_cluster_status');" 2>/dev/null || echo "MYSQL_PROBE_FAIL")
 echo "$VARS"
@@ -103,7 +103,7 @@ echo "ETCD_OK"
 # 6. DB new partition (Mon am, any master): next-week partition + p_future.
 def db_partition() -> str:
     return r"""
-export MYSQL_PW=${MYSQL_PW:-Cl0ud!P@ssw0rd}
+[ -n "$MYSQL_PW" ] || { echo "MYSQL_PW_NOT_SET: 请在 .env 填 MYSQL_DEFAULT_PW"; exit 1; }
 OUT=$(mysql -uroot -p"$MYSQL_PW" -N -e "SELECT PARTITION_NAME FROM information_schema.PARTITIONS WHERE TABLE_SCHEMA='oneapi_log' AND TABLE_NAME='logs';" 2>/dev/null || echo MYSQL_PROBE_FAIL)
 echo "$OUT"
 echo "$OUT" | grep -q "p_future" || { echo "PARTITION_FAIL: no p_future (query failed or table absent)"; exit 1; }

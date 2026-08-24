@@ -70,7 +70,7 @@ SCHEDULER_INTERVAL_MINUTES = int(os.getenv("SCHEDULER_INTERVAL_MINUTES", "60"))
 SEED_DEMO = os.getenv("SEED_DEMO", "false").lower() in ("1", "true", "yes", "on")
 
 # Documented default mysql auth (xunjian.md); override per-site.
-MYSQL_DEFAULT_PW = os.getenv("MYSQL_DEFAULT_PW", "Cl0ud!P@ssw0rd")
+MYSQL_DEFAULT_PW = os.getenv("MYSQL_DEFAULT_PW", "")  # 值仅放 gitignored 的 .env，不进代码
 
 # Reports output directory
 REPORTS_OUT_DIR = Path(os.getenv("REPORTS_OUT_DIR", str(BASE_DIR / "reports_out")))
