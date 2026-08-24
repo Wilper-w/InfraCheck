@@ -209,12 +209,21 @@ class TestDashboard:
         assert data["total"] > 0
         assert len(data["environments"]) == 5
 
-    def test_trend(self, client, auth_headers):
-        resp = client.get("/api/dashboard/trend?days=7", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert len(data["series"]) == 7
-        assert set(data["series"][0].keys()) == {"date", "normal", "abnormal", "unreachable", "failed"}
+    def test_trend_per_run(self, client, auth_headers):
+        # 每次巡检一个数据点：同一天多次巡检也各占一个点，不做按天累计。
+        # 基线 + 增量：触发 2 次巡检 → 系列恰好新增 2 个点。
+        before = client.get("/api/dashboard/trend?limit=100", headers=auth_headers).json()
+        n_before = len(before["series"])
+        for _ in range(2):
+            client.post("/api/runs/trigger", json={"scope": "all"}, headers=auth_headers)
+        after = client.get("/api/dashboard/trend?limit=100", headers=auth_headers).json()
+        assert len(after["series"]) == n_before + 2
+        assert set(after["series"][0].keys()) == {"date", "normal", "abnormal", "unreachable", "failed"}
+        # 每个点带时:分，能区分同一天多次巡检
+        assert all(":" in p["date"] for p in after["series"])
+        # 最近一次巡检必有结果（各状态计数之和 > 0）
+        latest = after["series"][-1]
+        assert latest["normal"] + latest["abnormal"] + latest["unreachable"] + latest["failed"] > 0
 
 
 # ---------------- environment summary (CONTRACT §4) ----------------

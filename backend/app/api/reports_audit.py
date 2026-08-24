@@ -11,6 +11,7 @@ from app.api._common import get_or_404, page_params, paginate
 from app.auth import current_account
 from app.db import get_db
 from app.models import AuditLog, Report
+from app.reports.data import counts
 from app.schemas import AuditLogOut, Paginated, ReportOut
 
 reports_router = APIRouter(prefix="/reports", tags=["reports"])
@@ -24,7 +25,22 @@ def list_reports(
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    return paginate(db.query(Report).order_by(Report.id.desc()), page, ReportOut)
+    q = db.query(Report).order_by(Report.id.desc())
+    total = q.count()
+    items = q.offset((page["page"] - 1) * page["page_size"]).limit(page["page_size"]).all()
+    out = []
+    for r in items:
+        data = {
+            "id": r.id,
+            "run_id": r.run_id,
+            "rendered_by": r.rendered_by,
+            "generated_at": r.generated_at,
+            "html_path": r.html_path,
+            "md_path": r.md_path,
+            "summary": counts(db, r.run_id),
+        }
+        out.append(ReportOut.model_validate(data))
+    return Paginated(items=out, total=total, **page)
 
 
 @reports_router.get("/{report_id}/html", response_class=HTMLResponse)

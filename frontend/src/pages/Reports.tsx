@@ -20,6 +20,14 @@ const { Text } = Typography;
 
 const fmtTime = (s: string) => new Date(s).toLocaleString('zh-CN', { hour12: false });
 
+// 结果概览列的固定顺序与配色
+const STATUS_META: { key: 'normal' | 'abnormal' | 'unreachable' | 'failed'; label: string; color: string }[] = [
+  { key: 'normal', label: '正常', color: 'green' },
+  { key: 'abnormal', label: '异常', color: 'red' },
+  { key: 'unreachable', label: '不可达', color: 'orange' },
+  { key: 'failed', label: '检查失败', color: 'purple' },
+];
+
 export default function Reports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +91,19 @@ export default function Reports() {
     { title: '对应巡检', dataIndex: 'run_id', width: 110, render: (v: number) => <Tag color="arcoblue">run #{v}</Tag> },
     { title: '生成人', dataIndex: 'rendered_by', width: 130 },
     { title: '生成时间', dataIndex: 'generated_at', render: (v: string) => fmtTime(v) },
+    {
+      title: '结果概览',
+      key: 'summary',
+      render: (_: unknown, r: Report) => (
+        <Space size={4}>
+          {STATUS_META.map((m) => (
+            <Tag key={m.key} color={m.color}>
+              {m.label} {(r.summary && r.summary[m.key]) ?? '-'}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
     {
       title: '格式',
       key: 'formats',

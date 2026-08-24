@@ -27,6 +27,9 @@ def _target(**kw):
         kw.get("environment_id", 1),
         kw.get("os_flavor", "ubuntu"),
         kw.get("address", "10.0.0.1"),
+        probe_mode=kw.get("probe_mode"),
+        probe_target=kw.get("probe_target"),
+        probe_port=kw.get("probe_port"),
     )
 
 
@@ -45,8 +48,9 @@ def test_ssh_runner_is_a_real_connection_attempt(monkeypatch):
     assert data["verdict"] != "no_jump_host_configured"  # genuinely attempted
 
 
-def test_ssh_runner_explicit_unreachable_without_jump_host():
-    # JUMP_HOST unset -> explicit reason, never a silent hang
+def test_ssh_runner_explicit_unreachable_without_jump_host(monkeypatch):
+    # JUMP_HOST unset -> explicit reason, never a silent hang (isolated from .env)
+    monkeypatch.setattr(config, "JUMP_HOST", "")
     status, evidence = asyncio.run(SshRunner().execute(_item(), _target()))
     assert status == "unreachable"
     assert json.loads(evidence)["verdict"] == "no_jump_host_configured"
@@ -72,10 +76,29 @@ def test_ssh_classify_maps_exit_code_to_status():
 
 def test_ssh_command_dispatched_by_target_type():
     from app.runner.ssh import _command_for
+    from app import checks
 
-    assert _command_for(_item(), _target(object_type="service", object_name="nginx@env1")) == "systemctl is-active nginx"
-    assert _command_for(_item(), _target()) == "hostname && uptime"
-    assert _command_for(_item(), _target(object_type="pod")) == "true"
+    # systemd service -> health probe script containing systemctl + nginx -t
+    svc = _command_for(_item(), _target(object_type="service", object_name="nginx@env1"))
+    assert "systemctl is-active --quiet nginx" in svc
+    assert "nginx -t" in svc
+    # physical -> resource threshold script (disk check present)
+    phys = _command_for(_item(), _target())
+    assert "df -P /" in phys and "DISK_FAIL" in phys
+    # port probe mode
+    port_cmd = _command_for(_item(), _target(object_type="service", object_name="redis@env1", probe_mode="port", probe_port=6379))
+    assert "6379" in port_cmd
+    # pod -> kubectl script
+    pod = _command_for(_item(), _target(object_type="pod", object_name="default/one-api"))
+    assert "kubectl" in pod and "one-api" in pod
+    # full scripts are valid shell
+    import subprocess, tempfile, os
+    for script in (svc, phys, pod, checks.cluster_script({})):
+        with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as f:
+            f.write(script); p_ = f.name
+        r = subprocess.run(["bash", "-n", p_], capture_output=True)
+        os.unlink(p_)
+        assert r.returncode == 0, script
 
 
 def test_run_concurrency_is_bounded(app, monkeypatch):
