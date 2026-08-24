@@ -1,12 +1,18 @@
 """HTML report rendering (CONTRACT §4 /reports)."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from sqlalchemy.orm import Session
 
 from app.models import Run
-from app.reports.data import STATUS_LABEL, counts, per_env, results_detail
+from app.reports.data import (
+    STATUS_LABEL,
+    counts,
+    evidence_summary,
+    fmt_local,
+    fmt_local_now,
+    per_env,
+    results_detail,
+)
 
 
 def _escape(text: str) -> str:
@@ -22,7 +28,7 @@ def render_html(db: Session, run: Run) -> str:
     summary = counts(db, run.id)
     envs = per_env(db, run.id)
     details = results_detail(db, run.id)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    now = fmt_local_now()
 
     summary_cells = "".join(
         f'<div class="cell"><div class="num {s}">{summary[s]}</div><div class="lbl">{STATUS_LABEL[s]}</div></div>'
@@ -41,7 +47,7 @@ def render_html(db: Session, run: Run) -> str:
         f"<td>{_escape(d['object_type'])}</td><td>{_escape(d['object_name'])}</td>"
         f"<td>{_escape(d['os_flavor'])}</td>"
         f"<td class='st {d['status']}'>{STATUS_LABEL.get(d['status'], d['status'])}</td>"
-        f"<td>{_escape(d['evidence'])}</td>"
+        f"<td>{_escape(evidence_summary(d['evidence']))}</td>"
         "</tr>"
         for d in details
     )
@@ -64,7 +70,7 @@ th{{background:#f7f8fa}}.st.normal{{color:#00b42a}}.st.abnormal{{color:#f53f3f}}
 <h1>InfraCheck 巡检报告 #{run.id}</h1>
 <div class="meta">
 触发方式: {run.trigger} · 触发人: {_escape(run.triggered_by)} ·
-开始: {run.started_at} · 结束: {run.finished_at or '-'} · 状态: {run.status} · 生成: {now}
+开始: {fmt_local(run.started_at)} · 结束: {fmt_local(run.finished_at)} · 状态: {run.status} · 生成: {now}
 </div>
 <h2>结果汇总 (合计 {summary['total']})</h2>
 <div class="summary">{summary_cells}</div>

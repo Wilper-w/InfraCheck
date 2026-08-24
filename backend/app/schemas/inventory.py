@@ -12,6 +12,11 @@ class EnvironmentBase(BaseModel):
     name: str
     os_flavor: str
     description: str = ""
+    # per-environment SSH chain (multi-hop) reachable from the jump host
+    ssh_entry_host: str = ""
+    ssh_entry_port: int = 22
+    ssh_entry_user: str = ""
+    ssh_master_ip: str = ""
 
 
 class EnvironmentCreate(EnvironmentBase):
@@ -22,6 +27,10 @@ class EnvironmentUpdate(BaseModel):
     name: Optional[str] = None
     os_flavor: Optional[str] = None
     description: Optional[str] = None
+    ssh_entry_host: Optional[str] = None
+    ssh_entry_port: Optional[int] = None
+    ssh_entry_user: Optional[str] = None
+    ssh_master_ip: Optional[str] = None
 
 
 class EnvironmentOut(BaseModel):
@@ -30,6 +39,10 @@ class EnvironmentOut(BaseModel):
     name: str
     os_flavor: str
     description: str
+    ssh_entry_host: str = ""
+    ssh_entry_port: int = 22
+    ssh_entry_user: str = ""
+    ssh_master_ip: str = ""
     created_at: datetime
 
 

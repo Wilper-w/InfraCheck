@@ -15,6 +15,7 @@ class ReportOut(BaseModel):
     generated_at: datetime
     html_path: str
     md_path: str
+    summary: dict[str, int]
 
 
 class AuditLogOut(BaseModel):

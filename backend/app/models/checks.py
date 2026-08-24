@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueCon
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
-from app.models.base import utcnow
+from app.models.base import UTCDateTime, utcnow
 
 
 class CheckItem(Base):
@@ -28,8 +28,8 @@ class Run(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     trigger: Mapped[str] = mapped_column(String(32), nullable=False)  # scheduled|manual
     triggered_by: Mapped[str] = mapped_column(String(128), nullable=False)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="running")  # running|finished|failed
 
 
@@ -45,7 +45,7 @@ class CheckResult(Base):
     os_flavor: Mapped[str | None] = mapped_column(String(32), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)  # normal|abnormal|unreachable|failed
     evidence: Mapped[str] = mapped_column(String(4096), default="")
-    captured_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    captured_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 
 class Finding(Base):
@@ -63,7 +63,7 @@ class Finding(Base):
     state: Mapped[str] = mapped_column(String(16), default="pending")  # pending|resolved|ignored
     note: Mapped[str] = mapped_column(String(1024), default="")
     updated_by: Mapped[str] = mapped_column(String(128), default="")
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
     __table_args__ = (
         UniqueConstraint(
             "check_item_id", "object_type", "object_name", "environment_id",

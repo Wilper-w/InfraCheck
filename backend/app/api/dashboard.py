@@ -1,7 +1,7 @@
 """Dashboard summary + trend + top-issues routes (CONTRACT §4 /dashboard)."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func
@@ -141,39 +141,36 @@ def dashboard_top_issues(
 
 @router.get("/trend", response_model=TrendResponse)
 def dashboard_trend(
-    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(30, ge=1, le=200),
     db: Session = Depends(get_db),
     _: str = Depends(current_account),
 ):
-    now = datetime.now(timezone.utc)
-    since = now - timedelta(days=days)
-    # Join runs (for started_at date) with results; aggregate by day + status.
+    """每次巡检（一次 run）为一个数据点，展示各次巡检各状态的当次结果数。
+
+    每个点即该次 run 的结果统计，与「最近一次巡检」KPI 口径一致；同一天多次巡检
+    会各占一个点，按时间先后排列，取最近 limit 次。
+    """
     rows = (
         db.query(
-            func.date(Run.started_at).label("d"),
+            Run.id.label("run_id"),
+            Run.started_at.label("started_at"),
             CheckResult.status,
             func.count(CheckResult.id),
         )
         .join(Run, CheckResult.run_id == Run.id)
-        .filter(Run.started_at >= since)
-        .group_by("d", CheckResult.status)
+        .group_by(Run.id, Run.started_at, CheckResult.status)
+        .order_by(Run.started_at.asc(), Run.id.asc())
         .all()
     )
-    by_date: dict[str, dict[str, int]] = {}
-    for d, s, n in rows:
-        by_date.setdefault(d, {"normal": 0, "abnormal": 0, "unreachable": 0, "failed": 0})[s] = n
-    # fill in missing days
-    series: list[TrendPoint] = []
-    for i in range(days):
-        day = (now - timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
-        c = by_date.get(day, {"normal": 0, "abnormal": 0, "unreachable": 0, "failed": 0})
-        series.append(
-            TrendPoint(
-                date=day,
-                normal=c.get("normal", 0),
-                abnormal=c.get("abnormal", 0),
-                unreachable=c.get("unreachable", 0),
-                failed=c.get("failed", 0),
+    # 每个 run 一个点，保留出现顺序（已按 started_at、id 升序）
+    runs: list[tuple[str, dict[str, int]]] = []
+    seen: dict[int, int] = {}
+    for run_id, started_at, s, n in rows:
+        if run_id not in seen:
+            seen[run_id] = len(runs)
+            runs.append(
+                (started_at.strftime("%Y-%m-%d %H:%M"), {"normal": 0, "abnormal": 0, "unreachable": 0, "failed": 0})
             )
-        )
+        runs[seen[run_id]][1][s] = n
+    series = [TrendPoint(date=label, **counts) for label, counts in runs[-limit:]]
     return TrendResponse(series=series)

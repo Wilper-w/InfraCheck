@@ -41,8 +41,10 @@ class DashboardSummary(BaseModel):
     environments: list[EnvSummaryItem] = []
 
 
+
 class TrendPoint(BaseModel):
-    date: str  # YYYY-MM-DD
+
+    date: str  # 该次巡检 started_at，UTC "YYYY-MM-DD HH:mm"（每次巡检一个点）
     normal: int = 0
     abnormal: int = 0
     unreachable: int = 0

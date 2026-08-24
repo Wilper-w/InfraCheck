@@ -19,7 +19,7 @@ def _item() -> CheckItem:
 
 def test_systemd_mode_uses_systemctl():
     cmd = _command_for(_item(), _svc_target("systemd"))
-    assert cmd == "systemctl is-active keepalived"
+    assert "systemctl is-active --quiet keepalived" in cmd
 
 
 def test_port_mode_checks_listening_socket():
@@ -36,7 +36,7 @@ def test_vip_mode_checks_address_binding():
 def test_port_mode_without_port_falls_back_to_systemd():
     """端口缺失时不能拼出 ':None' 这种坏命令，回落到 systemd。"""
     cmd = _command_for(_item(), _svc_target("port", port=None))
-    assert cmd == "systemctl is-active keepalived"
+    assert "systemctl is-active --quiet keepalived" in cmd
 
 
 def test_disabled_service_is_excluded_from_targets(db_session):

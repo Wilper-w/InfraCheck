@@ -7,3 +7,5 @@ python-multipart==0.0.32
 asyncssh==2.24.0
 cryptography==50.0.0
 APScheduler==3.11.3
+
+python-dotenv

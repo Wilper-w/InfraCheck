@@ -117,8 +117,8 @@ export const runApi = {
 // ---- dashboard ----
 export const dashboardApi = {
   summary: () => api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
-  trend: (days = 30) =>
-    api.get<TrendResponse>('/dashboard/trend', { params: { days } }).then((r) => r.data),
+  trend: (limit = 30) =>
+    api.get<TrendResponse>('/dashboard/trend', { params: { limit } }).then((r) => r.data),
   topIssues: (limit = 5) =>
     api.get<TopIssue[]>('/dashboard/top-issues', { params: { limit } }).then((r) => r.data),
 };

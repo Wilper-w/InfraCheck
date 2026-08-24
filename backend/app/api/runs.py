@@ -53,7 +53,7 @@ def trigger_run(
     # execute synchronously; for scope narrowing we still run all enabled items
     # but the engine resolves targets across all environments. Scope is recorded
     # for audit; full execution covers the seeded data so all four states appear.
-    execute_run(db, run, account)
+    execute_run(db, run, account, env_ids=[body.environment_id] if (body.scope == "environment" and body.environment_id is not None) else None)
     db.refresh(run)
     return TriggerResponse(run_id=run.id)
 

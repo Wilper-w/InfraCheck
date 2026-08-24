@@ -65,7 +65,8 @@ function HealthSummary({ rate, conclusion }: { rate: number; conclusion: string 
 }
 
 /**
- * 趋势折线。数据点不足时不绘图 —— 少于 4 个有效点的折线图
+ * 趋势折线（按巡检次数）。每个数据点 = 一次巡检（run）的当次结果，非按天聚合；
+ * 同一天多次巡检各占一个点。数据点不足时不绘图 —— 少于 4 个有效点的折线图
  * 只会呈现一条贴底平线 + 末端垂直拉升，误导且不可读。
  */
 function TrendChart({ series }: { series: TrendPoint[] }) {
@@ -122,26 +123,26 @@ function TrendChart({ series }: { series: TrendPoint[] }) {
     return `M${cx - 3.5},${cy} A3.5,3.5,0,1,1 ${cx + 3.5},${cy} A3.5,3.5,0,1,1 ${cx - 3.5},${cy} Z`;
   };
 
-  const activeDays = series.filter(
+  const activeRuns = series.filter(
     (p) => p.normal + p.abnormal + p.unreachable + p.failed > 0,
   );
-  const latest = activeDays[activeDays.length - 1];
+  const latest = activeRuns[activeRuns.length - 1];
 
   if (series.length === 0) return <Empty description="暂无趋势数据" style={{ padding: 48 }} />;
 
   const summary = (
     <div className="trend-summary" style={{ marginTop: 'auto', padding: 'var(--s-4) 8px 0' }}>
       <div style={{ color: 'var(--c-text-muted)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--s-3)' }}>
-        {activeDays.length < 4
-          ? `近 30 天仅 ${activeDays.length} 天有巡检记录，数据点不足以呈现趋势；积累 4 天以上记录后此处将自动显示折线图。`
-          : `近 30 天共有 ${activeDays.length} 天巡检记录，折线图展示每日累计结果变化。`}
+        {activeRuns.length < 4
+          ? `目前仅 ${activeRuns.length} 次巡检有结果，数据点不足以呈现趋势；积累 4 次以上巡检后此处将自动显示折线图。`
+          : `最近 ${activeRuns.length} 次巡检结果，折线图展示每次巡检的状态数量变化。`}
       </div>
       {latest && (
         <>
-          {/* 与顶部 KPI 口径不同：KPI 是「最近一次巡检」，这里是「当日累计」，
-              同日多次巡检会叠加。不标清楚会被当成数字对不上的 bug。 */}
+          {/* 与顶部 KPI 口径一致：每个点即「最近一次巡检」当次结果，
+              每次巡检一个点，不再按天累计。 */}
           <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-text-2)', marginBottom: 'var(--s-2)' }}>
-            {`${latest.date} 当日累计（同日多次巡检会累加，与上方「最近一次巡检」口径不同）`}
+            {`${latest.date} 最近一次巡检（每个数据点 = 一次巡检，与上方「最近一次巡检」口径一致）`}
           </div>
           <div style={{ display: 'flex', gap: 'var(--s-6)', flexWrap: 'wrap' }}>
             {SERIES_META.map((m) => (
@@ -162,7 +163,7 @@ function TrendChart({ series }: { series: TrendPoint[] }) {
   );
 
   // 有效数据点 < 4：不绘制容易误导的折线，仅保留底部汇总。
-  if (activeDays.length < 4) {
+  if (activeRuns.length < 4) {
     return (
       <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>{summary}</div>
     );

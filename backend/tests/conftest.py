@@ -12,6 +12,7 @@ import os
 os.environ["RUNNER_TRANSPORT"] = "dryrun"
 os.environ["SCHEDULER_ENABLED"] = "false"
 os.environ["AUTH_MODE"] = "mock"
+os.environ["SEED_DEMO"] = "true"  # tests rely on demo assets, even if backend/.env sets false
 
 import pytest
 from fastapi.testclient import TestClient
