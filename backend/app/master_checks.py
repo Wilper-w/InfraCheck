@@ -60,19 +60,26 @@ fi
 """
 
 
+def _pw_esc() -> str:
+    """MYSQL default password from .env, single-quote-escaped for the generated script."""
+    from app import config
+    return config.MYSQL_DEFAULT_PW.replace("'", "'\\''")
+
+
 # 4. mysql cluster (any 1 master): wsrep_* statuses (auth: MYSQL_PW from .env).
 def mysql_cluster() -> str:
-    return r"""
-[ -n "$MYSQL_PW" ] || { echo "MYSQL_PW_NOT_SET: 请在 .env 填 MYSQL_DEFAULT_PW"; exit 1; }
+    esc = _pw_esc()
+    return fr'''export MYSQL_PW='{esc}'
+[ -n "$MYSQL_PW" ] || {{ echo "MYSQL_PW_NOT_SET: 请在 .env 填 MYSQL_DEFAULT_PW"; exit 1; }}
 VARS=$(mysql -uroot -p"$MYSQL_PW" -N -e "SHOW GLOBAL STATUS WHERE Variable_name IN ('wsrep_local_state_comment','wsrep_evs_state','wsrep_cluster_size','wsrep_cluster_status');" 2>/dev/null || \
        mysql -uroot -N -e "SHOW GLOBAL STATUS WHERE Variable_name IN ('wsrep_local_state_comment','wsrep_evs_state','wsrep_cluster_size','wsrep_cluster_status');" 2>/dev/null || echo "MYSQL_PROBE_FAIL")
 echo "$VARS"
-echo "$VARS" | grep -q "Synced" || { echo "MYSQL_CLUSTER_FAIL: not Synced"; exit 1; }
-echo "$VARS" | grep -q "OPERATIONAL" || { echo "MYSQL_CLUSTER_FAIL: evs not OPERATIONAL"; exit 1; }
-echo "$VARS" | grep -qE "wsrep_cluster_size.*3" || { echo "MYSQL_CLUSTER_FAIL: cluster size != 3"; exit 1; }
-echo "$VARS" | grep -q "Primary" || { echo "MYSQL_CLUSTER_FAIL: not Primary"; exit 1; }
+echo "$VARS" | grep -q "Synced" || {{ echo "MYSQL_CLUSTER_FAIL: not Synced"; exit 1; }}
+echo "$VARS" | grep -q "OPERATIONAL" || {{ echo "MYSQL_CLUSTER_FAIL: evs not OPERATIONAL"; exit 1; }}
+echo "$VARS" | grep -qE "wsrep_cluster_size.*3" || {{ echo "MYSQL_CLUSTER_FAIL: cluster size != 3"; exit 1; }}
+echo "$VARS" | grep -q "Primary" || {{ echo "MYSQL_CLUSTER_FAIL: not Primary"; exit 1; }}
 echo "MYSQL_CLUSTER_OK"
-"""
+'''
 
 
 # 5. etcd cluster (any 1 master): all members started, leader exists, capacity sane.
@@ -102,15 +109,16 @@ echo "ETCD_OK"
 
 # 6. DB new partition (Mon am, any master): next-week partition + p_future.
 def db_partition() -> str:
-    return r"""
-[ -n "$MYSQL_PW" ] || { echo "MYSQL_PW_NOT_SET: 请在 .env 填 MYSQL_DEFAULT_PW"; exit 1; }
+    esc = _pw_esc()
+    return fr'''export MYSQL_PW='{esc}'
+[ -n "$MYSQL_PW" ] || {{ echo "MYSQL_PW_NOT_SET: 请在 .env 填 MYSQL_DEFAULT_PW"; exit 1; }}
 OUT=$(mysql -uroot -p"$MYSQL_PW" -N -e "SELECT PARTITION_NAME FROM information_schema.PARTITIONS WHERE TABLE_SCHEMA='oneapi_log' AND TABLE_NAME='logs';" 2>/dev/null || echo MYSQL_PROBE_FAIL)
 echo "$OUT"
-echo "$OUT" | grep -q "p_future" || { echo "PARTITION_FAIL: no p_future (query failed or table absent)"; exit 1; }
+echo "$OUT" | grep -q "p_future" || {{ echo "PARTITION_FAIL: no p_future (query failed or table absent)"; exit 1; }}
 NW=$(echo "$OUT" | grep -Eo 'p[0-9]{4}w[0-9]+' | sort -V | tail -1)
 echo "latest_partition=$NW"
 echo "PARTITION_OK (p_future present, latest=$NW)"
-"""
+'''
 
 
 # 7. k8s 集群组件健康（control-plane pods + 节点 Ready）
