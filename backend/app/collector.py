@@ -69,20 +69,12 @@ def _gateway(command: str, chain: dict | None = None, timeout: int = 300) -> str
     return _run(_ssh(c["host"], c["port"], c["user"], command), timeout)
 
 
-def _with_pw(cmd: str) -> str:
-    """Prefill MYSQL_PW on the remote shell from config (loaded from .env)."""
-    pw = os.getenv("MYSQL_DEFAULT_PW", "") or ""
-    if not pw:
-        return cmd
-    esc = pw.replace(chr(39), chr(39) + chr(92) + chr(39) + chr(39))
-    return f"export MYSQL_PW='{esc}'; " + cmd
-
 
 def _master_shell(script: str, chain: dict | None, timeout: int) -> str:
     """Return a command that runs `script` on the env's master (entry -> master)."""
     c = resolve_chain(chain)
     b64 = base64.b64encode(script.encode()).decode()
-    run = _with_pw(f"echo {b64} | base64 -d > /tmp/ic_single.sh && timeout {timeout} bash /tmp/ic_single.sh; echo __IC_RC__=$?")
+    run = f"echo {b64} | base64 -d > /tmp/ic_single.sh && timeout {timeout} bash /tmp/ic_single.sh; echo __IC_RC__=$?"
     if c["master_ip"]:
         # two-hop: hop through the entry to the master, then run the script there
         return _ssh(c["host"], c["port"], c["user"], _ssh(c["master_ip"], 22, "root", run))
