@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">InfraCheck 巡检平台</title>
+  <desc id="hero-desc">企业级运维巡检平台：经跳板机一次触发，巡检多个互不连通的内网部署环境，自动判定对象状态（正常/异常/不可达/检查失败）并出具可归档报告。</desc>
+
+  <defs>
+    <linearGradient id="hubfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef4ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="380" rx="22" fill="#f6f8fa"/>
+
+  <g id="title-block">
+    <!-- eyebrow / category -->
+    <text x="60" y="78" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="20" font-weight="600" fill="#8b9096" letter-spacing="2">企业级运维巡检平台 · ENTERPRISE INSPECTION PLATFORM</text>
+
+    <!-- name -->
+    <text x="58" y="158" font-family="'PingFang SC','Microsoft YaHei',-apple-system,'Segoe UI',sans-serif" font-size="76" font-weight="700" fill="#111418">InfraCheck</text>
+
+    <!-- promise -->
+    <text x="60" y="220" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" fill="#5a6069">跨互不连通的内网部署环境，</text>
+    <text x="60" y="254" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" fill="#5a6069">自动巡检、判定状态并出具可归档报告。</text>
+
+    <!-- mono metadata -->
+    <text x="60" y="304" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#8b9096">5 environments · jump-host relay · dryrun / ssh</text>
+
+    <!-- status legend -->
+    <g font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" fill="#5a6069">
+      <circle cx="68" cy="334" r="5" fill="#15803d"/>
+      <text x="82" y="340">正常</text>
+      <circle cx="140" cy="334" r="5" fill="#c81e1e"/>
+      <text x="154" y="340">异常</text>
+      <circle cx="214" cy="334" r="5" fill="#c2410c"/>
+      <text x="228" y="340">不可达</text>
+      <circle cx="304" cy="334" r="5" fill="#57606a"/>
+      <text x="318" y="340">检查失败</text>
+    </g>
+  </g>
+
+  <g id="topology">
+    <!-- hub -->
+    <line x1="930" y1="112" x2="810" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
+    <line x1="930" y1="112" x2="878" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
+    <line x1="930" y1="112" x2="952" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
+    <line x1="930" y1="112" x2="1026" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
+    <line x1="930" y1="112" x2="1100" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
+    <rect x="855" y="62" width="150" height="50" rx="12" fill="url(#hubfill)" stroke="#2563eb" stroke-width="2"/>
+    <text x="930" y="84" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="600" fill="#1a1d21">跳板机</text>
+    <text x="930" y="104" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#2563eb">jump host</text>
+
+    <!-- env chips -->
+    <g>
+      <rect x="777" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
+      <circle cx="810" cy="254" r="6" fill="#15803d"/>
+      <text x="810" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-01</text>
+
+      <rect x="845" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
+      <circle cx="878" cy="254" r="6" fill="#c2410c"/>
+      <text x="878" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-02</text>
+
+      <rect x="919" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
+      <circle cx="952" cy="254" r="6" fill="#15803d"/>
+      <text x="952" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-03</text>
+
+      <rect x="993" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
+      <circle cx="1026" cy="254" r="6" fill="#c81e1e"/>
+      <text x="1026" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-04</text>
+
+      <rect x="1067" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
+      <circle cx="1100" cy="254" r="6" fill="#57606a"/>
+      <text x="1100" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-05</text>
+    </g>
+
+    <!-- caption -->
+    <text x="930" y="336" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="16" fill="#8b9096">互不连通环境 · 经跳板机一次触达</text>
+  </g>
+</svg>
