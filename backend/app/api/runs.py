@@ -1,13 +1,13 @@
 """Run + result routes (CONTRACT §4 /runs, /results)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api._common import get_or_404, page_params, paginate, write_audit
 from app.auth import current_account
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app.engine import execute_run
 from app.models import CheckItem, CheckResult, Environment, Run
 from app.schemas import (
@@ -22,13 +22,30 @@ from app.schemas import (
 router = APIRouter(tags=["runs"])
 
 
+def _execute_run_bg(run_id: int, account: str, env_ids: list[int] | None) -> None:
+    """后台执行一次手动巡检（BackgroundTasks；与定时任务同模式）。
+
+    响应返回后 FastAPI 会关闭请求 session（get_db 的 finally），因此这里
+    重建独立 session 再执行；run 行已在触发接口由 write_audit commit。
+    """
+    db = SessionLocal()
+    try:
+        run = db.get(Run, run_id)
+        if run is not None:
+            execute_run(db, run, account, env_ids)
+    finally:
+        db.close()
+
+
 @router.post("/runs/trigger", response_model=TriggerResponse)
 def trigger_run(
     body: TriggerRequest,
     db: Session = Depends(get_db),
     account: str = Depends(current_account),
+    background: BackgroundTasks = BackgroundTasks,
 ):
-    """Create a manual run and execute it synchronously (dryrun is instant)."""
+    """Create a manual run; inspection executes in the background so the
+    request returns immediately and the client polls GET /runs/{id}."""
     if body.scope == "environment" and body.environment_id is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="environment_id required for scope=environment")
     if body.scope == "check" and body.check_item_id is None:
@@ -50,11 +67,14 @@ def trigger_run(
     )
     db.refresh(run)
 
-    # execute synchronously; for scope narrowing we still run all enabled items
-    # but the engine resolves targets across all environments. Scope is recorded
-    # for audit; full execution covers the seeded data so all four states appear.
-    execute_run(db, run, account, env_ids=[body.environment_id] if (body.scope == "environment" and body.environment_id is not None) else None)
-    db.refresh(run)
+    # scope narrowing still runs all enabled items (engine resolves targets
+    # across all environments); scope is recorded for audit only.
+    env_ids = (
+        [body.environment_id]
+        if (body.scope == "environment" and body.environment_id is not None)
+        else None
+    )
+    background.add_task(_execute_run_bg, run.id, account, env_ids)
     return TriggerResponse(run_id=run.id)
 
 

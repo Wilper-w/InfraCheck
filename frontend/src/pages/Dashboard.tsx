@@ -291,10 +291,18 @@ export default function Dashboard() {
   const handleTrigger = async () => {
     setTriggering(true);
     try {
-      await runApi.trigger({ scope: 'all' });
-      setTimeout(loadData, 1500);
+      // 后端异步执行巡检：POST /runs/trigger 立即返回 run_id，
+      // 这里轮询 GET /runs/{id} 直到 finished/failed（CONTRACT §4），再刷新看板。
+      const { run_id } = await runApi.trigger({ scope: 'all' });
+      const deadline = Date.now() + 10 * 60 * 1000; // SSH 巡检较慢，上限 10 分钟
+      while (Date.now() < deadline) {
+        const run = await runApi.detail(run_id);
+        if (run.status !== 'running') break;
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      loadData();
     } catch {
-      /* 拦截器已提示 */
+      /* 拦截器已提示：触发或轮询失败时展示现有数据 */
     } finally {
       setTriggering(false);
     }
