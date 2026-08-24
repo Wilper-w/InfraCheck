@@ -1,78 +1,99 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="hero-title hero-desc">
-  <title id="hero-title">InfraCheck 巡检平台</title>
-  <desc id="hero-desc">企业级运维巡检平台：经跳板机一次触发，巡检多个互不连通的内网部署环境，自动判定对象状态（正常/异常/不可达/检查失败）并出具可归档报告。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">InfraCheck 基础设施巡检平台</title>
+  <desc id="hero-desc">一次触发，经跳板机与多跳链路巡检多个互不连通的内网部署环境，对物理机、系统服务、K8s 集群/Pod、bond 与 mysql 集群自动判定状态（正常/异常/不可达/检查失败）、留存证据并出具可归档报告。</desc>
 
   <defs>
-    <linearGradient id="hubfill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#eef4ff"/>
-      <stop offset="1" stop-color="#ffffff"/>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0F141C"/>
+      <stop offset="1" stop-color="#0B0F15"/>
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="380" rx="22" fill="#f6f8fa"/>
+  <rect width="1200" height="440" rx="24" fill="#0A0D12"/>
 
+  <!-- ======= Title block ======= -->
   <g id="title-block">
-    <!-- eyebrow / category -->
-    <text x="60" y="78" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="20" font-weight="600" fill="#8b9096" letter-spacing="2">企业级运维巡检平台 · ENTERPRISE INSPECTION PLATFORM</text>
+    <!-- eyebrow -->
+    <text x="62" y="86" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="19" font-weight="600" fill="#5B6572" letter-spacing="3">企业级基础设施巡检 · INFRA INSPECTION</text>
 
     <!-- name -->
-    <text x="58" y="158" font-family="'PingFang SC','Microsoft YaHei',-apple-system,'Segoe UI',sans-serif" font-size="76" font-weight="700" fill="#111418">InfraCheck</text>
+    <text x="60" y="162" font-family="'PingFang SC','Microsoft YaHei',-apple-system,'Segoe UI',sans-serif" font-size="76" font-weight="700" fill="#EAF0F7">InfraCheck</text>
+
+    <!-- accent tick -->
+    <rect x="62" y="186" width="64" height="5" rx="2.5" fill="#3B82F6"/>
 
     <!-- promise -->
-    <text x="60" y="220" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" fill="#5a6069">跨互不连通的内网部署环境，</text>
-    <text x="60" y="254" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" fill="#5a6069">自动巡检、判定状态并出具可归档报告。</text>
+    <text x="62" y="248" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="25" fill="#C3CBD6">一次触发，多跳链路巡检互不联通的内网环境</text>
+    <text x="62" y="284" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="25" fill="#C3CBD6">判定状态、留存证据，并出具可归档报告。</text>
 
     <!-- mono metadata -->
-    <text x="60" y="304" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#8b9096">5 environments · jump-host relay · dryrun / ssh</text>
+    <text x="62" y="326" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="17" fill="#8B96A5">dryrun / ssh-multihop  ·  auto report  ·  audit</text>
 
     <!-- status legend -->
-    <g font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" fill="#5a6069">
-      <circle cx="68" cy="334" r="5" fill="#15803d"/>
-      <text x="82" y="340">正常</text>
-      <circle cx="140" cy="334" r="5" fill="#c81e1e"/>
-      <text x="154" y="340">异常</text>
-      <circle cx="214" cy="334" r="5" fill="#c2410c"/>
-      <text x="228" y="340">不可达</text>
-      <circle cx="304" cy="334" r="5" fill="#57606a"/>
-      <text x="318" y="340">检查失败</text>
+    <g font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" fill="#C3CBD6">
+      <circle cx="70" cy="366" r="5" fill="#22C55E"/>
+      <text x="84" y="372">正常</text>
+      <circle cx="148" cy="366" r="5" fill="#EF4444"/>
+      <text x="162" y="372">异常</text>
+      <circle cx="230" cy="366" r="5" fill="#F59E0B"/>
+      <text x="244" y="372">不可达</text>
+      <circle cx="330" cy="366" r="5" fill="#64748B"/>
+      <text x="344" y="372">检查失败</text>
     </g>
   </g>
 
-  <g id="topology">
-    <!-- hub -->
-    <line x1="930" y1="112" x2="810" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
-    <line x1="930" y1="112" x2="878" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
-    <line x1="930" y1="112" x2="952" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
-    <line x1="930" y1="112" x2="1026" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
-    <line x1="930" y1="112" x2="1100" y2="236" stroke="#d0d6dd" stroke-width="1.5"/>
-    <rect x="855" y="62" width="150" height="50" rx="12" fill="url(#hubfill)" stroke="#2563eb" stroke-width="2"/>
-    <text x="930" y="84" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="600" fill="#1a1d21">跳板机</text>
-    <text x="930" y="104" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#2563eb">jump host</text>
+  <!-- ======= Proof: inspection console panel ======= -->
+  <g id="console">
+    <rect x="668" y="64" width="452" height="352" rx="18" fill="url(#panel)" stroke="#232C37" stroke-width="1.5"/>
 
-    <!-- env chips -->
+    <!-- window dots + title -->
+    <circle cx="696" cy="90" r="4" fill="#3A4450"/>
+    <circle cx="716" cy="90" r="4" fill="#3A4450"/>
+    <circle cx="736" cy="90" r="4" fill="#3A4450"/>
+    <text x="760" y="95" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#8B96A5">infracheck inspect</text>
+
+    <!-- divider -->
+    <line x1="694" y1="112" x2="1098" y2="112" stroke="#232C37" stroke-width="1.5"/>
+
+    <!-- invocation -->
+    <text x="696" y="142" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="17" fill="#3B82F6">$</text>
+    <text x="716" y="142" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="17" fill="#AAB6C5">inspect --all · one trigger</text>
+
+    <!-- relay chain (multi-hop) -->
+    <text x="696" y="174" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#5B6572">relay: jump-host → gateway → node · ssh / dryrun</text>
+
+    <!-- env status rows -->
     <g>
-      <rect x="777" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
-      <circle cx="810" cy="254" r="6" fill="#15803d"/>
-      <text x="810" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-01</text>
+      <circle cx="704" cy="204" r="5" fill="#22C55E"/>
+      <text x="728" y="210" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#EAF0F7">env-01</text>
+      <text x="802" y="210" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#22C55E">normal</text>
+      <text x="1096" y="210" text-anchor="end" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#5B6572">4 nodes · k8s</text>
 
-      <rect x="845" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
-      <circle cx="878" cy="254" r="6" fill="#c2410c"/>
-      <text x="878" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-02</text>
+      <circle cx="704" cy="240" r="5" fill="#EF4444"/>
+      <text x="728" y="246" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#EAF0F7">env-02</text>
+      <text x="802" y="246" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#EF4444">abnormal</text>
+      <text x="1096" y="246" text-anchor="end" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#5B6572">3 nodes</text>
 
-      <rect x="919" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
-      <circle cx="952" cy="254" r="6" fill="#15803d"/>
-      <text x="952" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-03</text>
+      <circle cx="704" cy="276" r="5" fill="#F59E0B"/>
+      <text x="728" y="282" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#EAF0F7">env-03</text>
+      <text x="802" y="282" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#F59E0B">unreachable</text>
+      <text x="1096" y="282" text-anchor="end" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#5B6572">3 nodes</text>
 
-      <rect x="993" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
-      <circle cx="1026" cy="254" r="6" fill="#c81e1e"/>
-      <text x="1026" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-04</text>
+      <circle cx="704" cy="312" r="5" fill="#22C55E"/>
+      <text x="728" y="318" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#EAF0F7">env-04</text>
+      <text x="802" y="318" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#22C55E">normal</text>
+      <text x="1096" y="318" text-anchor="end" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#5B6572">3 nodes · k8s</text>
 
-      <rect x="1067" y="236" width="66" height="56" rx="10" fill="#ffffff" stroke="#e5e8ed" stroke-width="1.5"/>
-      <circle cx="1100" cy="254" r="6" fill="#57606a"/>
-      <text x="1100" y="280" text-anchor="middle" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="16" fill="#5a6069">env-05</text>
+      <circle cx="704" cy="348" r="5" fill="#22C55E"/>
+      <text x="728" y="354" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="18" fill="#EAF0F7">env-05</text>
+      <text x="802" y="354" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#22C55E">normal</text>
+      <text x="1096" y="354" text-anchor="end" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#5B6572">3 nodes</text>
     </g>
 
-    <!-- caption -->
-    <text x="930" y="336" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="16" fill="#8b9096">互不连通环境 · 经跳板机一次触达</text>
+    <!-- divider -->
+    <line x1="694" y1="374" x2="1098" y2="374" stroke="#232C37" stroke-width="1.5"/>
+
+    <!-- coverage footer -->
+    <text x="696" y="398" font-family="'SF Mono','Menlo',ui-monospace,monospace" font-size="14" fill="#8B96A5">checks: physical · service · k8s · bond · mysql</text>
   </g>
 </svg>
