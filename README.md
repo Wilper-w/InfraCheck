@@ -107,10 +107,8 @@ design-system/infracheck/   设计令牌与组件规范
 ## 文档
 
 - [`CONTRACT.md`](./CONTRACT.md)——前后端契约的唯一事实来源（数据模型 / REST API / 契约锚点）
-- [`CONTEXT.md`](./CONTEXT.md)——领域词汇表，避免歧义
 - [`design-system/infracheck/MASTER.md`](./design-system/infracheck/MASTER.md)——设计令牌与交互规范
 - [`backend/SMOKE.md`](./backend/SMOKE.md)——后端端到端冒烟测试记录
-- [`docs/adr/`](./docs/adr/)——架构决策记录
 
 ## 项目状态
 
