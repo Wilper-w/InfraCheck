@@ -75,7 +75,8 @@ def create_environment(
 ):
     if db.query(Environment).filter(Environment.name == body.name).first():
         raise HTTPException(status.HTTP_409_CONFLICT, detail="environment name already exists")
-    env = Environment(name=body.name, os_flavor=body.os_flavor, description=body.description)
+    data = body.model_dump()
+    env = Environment(**data)
     save_and_audit(db, env, account, "environment.create", f"created {body.name}")
     return EnvironmentOut.model_validate(env)
 
@@ -339,3 +340,71 @@ def create_pod(
     pod = Pod(namespace_id=ns_id, name=body.name, labels=body.labels)
     save_and_audit(db, pod, account, "pod.create", f"created {body.name}")
     return PodOut.model_validate(pod)
+
+
+# ---------------- k8s node auto-discovery ----------------
+@router.get("/environments/{env_id}/discover-nodes")
+def discover_nodes_report(
+    env_id: int,
+    db: Session = Depends(get_db),
+    account: str = Depends(current_account),
+):
+    """Dry-run: query the environment's k8s (via gateway) and report nodes that
+    would be imported, without writing anything."""
+    get_or_404(db, Environment, env_id, "environment")
+    from app.discovery import discover_k8s_nodes
+    env = db.get(Environment, env_id)
+    chain = {
+        "host": env.ssh_entry_host or "", "port": env.ssh_entry_port or 22,
+        "user": env.ssh_entry_user or "", "master_ip": env.ssh_master_ip or "",
+    }
+    nodes = discover_k8s_nodes(chain)
+    existing = {
+        n.hostname
+        for n in db.query(PhysicalNode).filter(PhysicalNode.environment_id == env_id)
+    }
+    return {
+        "total": len(nodes),
+        "to_import": [n for n in nodes if n["hostname"] not in existing],
+        "already_imported": len(existing),
+    }
+
+
+@router.post("/environments/{env_id}/discover-nodes")
+def import_discovered_nodes(
+    env_id: int,
+    db: Session = Depends(get_db),
+    account: str = Depends(current_account),
+):
+    """Run k8s discovery and import nodes into this environment (idempotent)."""
+    get_or_404(db, Environment, env_id, "environment")
+    from app.api._common import write_audit
+    from app.discovery import discover_k8s_nodes, os_flavor_from
+
+    env = db.get(Environment, env_id)
+    chain = {
+        "host": env.ssh_entry_host or "", "port": env.ssh_entry_port or 22,
+        "user": env.ssh_entry_user or "", "master_ip": env.ssh_master_ip or "",
+    }
+    nodes = discover_k8s_nodes(chain)
+    existing = {
+        n.hostname for n in db.query(PhysicalNode).filter(PhysicalNode.environment_id == env_id)
+    }
+    created, skipped = [], 0
+    for n in nodes:
+        if n["hostname"] in existing:
+            skipped += 1
+            continue
+        db.add(
+            PhysicalNode(
+                environment_id=env_id,
+                hostname=n["hostname"],
+                ip=n["ip"],
+                os_flavor=os_flavor_from(n["os_image"]) or env.os_flavor,
+            )
+        )
+        created.append(n["hostname"])
+    db.commit()
+    if created:
+        write_audit(db, account, "node.discover", f"env:{env_id}", f"imported {len(created)} k8s nodes")
+    return {"imported": created, "count": len(created), "skipped": skipped, "total": len(nodes)}

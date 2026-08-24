@@ -57,6 +57,10 @@ def seed(db: Session) -> None:
         # default: once daily at 08:00 (every day). days=[] means every day.
         kv.set_schedules(db, [{"time": "08:00", "days": []}])
 
+    from app import config
+
+    if not config.SEED_DEMO:
+        return  # real site: start with an empty inventory
     if db.query(Environment).count() > 0:
         return
 
@@ -101,7 +105,9 @@ def seed(db: Session) -> None:
         # clusters
         if name == "env-01":
             cluster = Cluster(
-                environment_id=env.id, name="k8s-prod", api_endpoint="https://10.0.1.10:6443"
+                environment_id=env.id, name="k8s-prod",
+                api_endpoint="https://10.0.1.10:6443",
+                exec_host="10.0.1.10",
             )
             db.add(cluster)
             db.flush()
@@ -121,7 +127,9 @@ def seed(db: Session) -> None:
                     )
         else:
             cluster = Cluster(
-                environment_id=env.id, name=f"k8s-{name}", api_endpoint=f"https://10.0.{idx}.10:6443"
+                environment_id=env.id, name=f"k8s-{name}",
+                api_endpoint=f"https://10.0.{idx}.10:6443",
+                exec_host=f"10.0.{idx}.10",
             )
             db.add(cluster)
             db.flush()

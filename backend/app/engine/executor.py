@@ -16,18 +16,23 @@ def select_check_items(db: Session) -> list[CheckItem]:
     return db.query(CheckItem).filter(CheckItem.enabled.is_(True)).order_by(CheckItem.id).all()
 
 
-def execute_run(db: Session, run: Run, account: str) -> None:
+def execute_run(db: Session, run: Run, account: str, env_ids: list[int] | None = None) -> None:
     """Run all enabled check items against their target objects with bounded
     concurrency (asyncio.Semaphore + gather) and persist results.
 
-    The transport (dryrun|ssh) is chosen from config. After results are written,
-    a report is generated and audit entries recorded.
+    When RUNNER_TRANSPORT=ssh and COLLECTOR=ansible, execution fans out on the
+    gateway via collector_run (1 SSH per environment) instead of per-node SSH.
     """
     import asyncio
 
     from app.runner import get_runner
     from app.reports import generate_report
     from app.models import AuditLog
+
+    if config.RUNNER_TRANSPORT == "ssh" and getattr(config, "COLLECTOR", "") == "ansible":
+        from app.collector_run import execute_run_ansible
+        execute_run_ansible(db, run, account, env_ids)
+        return
 
     runner = get_runner(config.RUNNER_TRANSPORT)
     check_items = select_check_items(db)

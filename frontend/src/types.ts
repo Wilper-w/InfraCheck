@@ -185,7 +185,6 @@ export interface TrendResponse {
   series: TrendPoint[];
 }
 
-// reports
 export interface Report {
   id: number;
   run_id: number;
@@ -193,6 +192,7 @@ export interface Report {
   generated_at: string;
   html_path: string;
   md_path: string;
+  summary: { total: number; normal: number; abnormal: number; unreachable: number; failed: number };
 }
 
 // audit

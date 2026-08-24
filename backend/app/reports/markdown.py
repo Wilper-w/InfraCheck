@@ -1,19 +1,25 @@
 """Markdown report rendering (CONTRACT §4 /reports)."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from sqlalchemy.orm import Session
 
 from app.models import Run
-from app.reports.data import STATUS_LABEL, counts, per_env, results_detail
+from app.reports.data import (
+    STATUS_LABEL,
+    counts,
+    evidence_summary,
+    fmt_local,
+    fmt_local_now,
+    per_env,
+    results_detail,
+)
 
 
 def render_markdown(db: Session, run: Run) -> str:
     summary = counts(db, run.id)
     envs = per_env(db, run.id)
     details = results_detail(db, run.id)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    now = fmt_local_now()
 
     lines = [
         f"# InfraCheck 巡检报告",
@@ -21,8 +27,8 @@ def render_markdown(db: Session, run: Run) -> str:
         f"- 巡检编号 (Run ID): **{run.id}**",
         f"- 触发方式: {run.trigger}",
         f"- 触发人: {run.triggered_by}",
-        f"- 开始时间: {run.started_at}",
-        f"- 结束时间: {run.finished_at or '-'}",
+        f"- 开始时间: {fmt_local(run.started_at)}",
+        f"- 结束时间: {fmt_local(run.finished_at)}",
         f"- 状态: {run.status}",
         f"- 生成时间: {now}",
         "",
@@ -48,7 +54,7 @@ def render_markdown(db: Session, run: Run) -> str:
         )
     lines += ["", "## 结果明细", "", "| 对象类型 | 对象 | OS | 状态 | 证据 |", "| --- | --- | --- | --- | --- |"]
     for d in details:
-        ev = d["evidence"].replace("|", "\\|").replace("\n", " ")[:200]
+        ev = evidence_summary(d["evidence"]).replace("|", "\\|")
         lines.append(
             f"| {d['object_type']} | {d['object_name']} | {d['os_flavor']} | "
             f"{STATUS_LABEL.get(d['status'], d['status'])} | {ev} |"

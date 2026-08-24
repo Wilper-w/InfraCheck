@@ -88,7 +88,7 @@
 
 ### 大盘与趋势 /dashboard
 - `GET /api/dashboard/summary` 响应：`{"generated_at", "total", "normal", "abnormal", "unreachable", "failed", "environments":[{environment_id, name, abnormal, unreachable, failed, total}]}`
-- `GET /api/dashboard/trend?days=30` 响应 `{"series":[{"date":"YYYY-MM-DD","normal":n,"abnormal":n,"unreachable":n,"failed":n}]}`（按天的所有 run 结果汇总）
+- `GET /api/dashboard/trend?limit=30` 响应 `{"series":[{"date":"YYYY-MM-DD HH:mm","normal":n,"abnormal":n,"unreachable":n,"failed":n}]}`（按巡检次数：每个点 = 一次 run 的当次结果，非按天累计；`date` 为该次巡检 `started_at` UTC。同一天多次巡检各占一个点）
 
 ### 报告 /reports
 - `GET /api/reports`  列表（含 `run_id`、`rendered_by`、`generated_at`、`html_path`、`md_path`）

@@ -77,7 +77,10 @@ def resolve_targets(db: Session, check_item: CheckItem) -> list[TargetObject]:
             .all()
         ):
             targets.append(
-                TargetObject("cluster", cluster.name, env.id, _env_flavor(env))
+                TargetObject(
+                    "cluster", cluster.name, env.id, _env_flavor(env),
+                    address=cluster.exec_host or None,
+                )
             )
     elif tt == "pod":
         for pod, ns, cluster, env in (
@@ -88,7 +91,10 @@ def resolve_targets(db: Session, check_item: CheckItem) -> list[TargetObject]:
             .all()
         ):
             targets.append(
-                TargetObject("pod", f"{ns.name}/{pod.name}", env.id, _env_flavor(env))
+                TargetObject(
+                    "pod", f"{ns.name}/{pod.name}", env.id, _env_flavor(env),
+                    address=cluster.exec_host or None,
+                )
             )
     return targets
 
