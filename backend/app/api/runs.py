@@ -1,6 +1,8 @@
 """Run + result routes (CONTRACT §4 /runs, /results)."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -32,7 +34,16 @@ def _execute_run_bg(run_id: int, account: str, env_ids: list[int] | None) -> Non
     try:
         run = db.get(Run, run_id)
         if run is not None:
-            execute_run(db, run, account, env_ids)
+            try:
+                execute_run(db, run, account, env_ids)
+            except Exception:
+                # 任何执行期异常都不能让 run 永久停在 running：
+                # 标记 failed 并落库后继续上抛（便于日志定位）。
+                db.rollback()
+                run.status = "failed"
+                run.finished_at = datetime.now(timezone.utc)
+                db.commit()
+                raise
     finally:
         db.close()
 
@@ -108,6 +119,7 @@ def get_run(
         started_at=run.started_at,
         finished_at=run.finished_at,
         status=run.status,
+        progress_note=run.progress_note,
         results=counts,
     )
 

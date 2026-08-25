@@ -31,6 +31,8 @@ class Run(Base):
     started_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="running")  # running|finished|failed
+    # 逐环境增量巡检的进度说明（如「已完成 1/2 个环境 · 累计 N 条」）
+    progress_note: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
 class CheckResult(Base):

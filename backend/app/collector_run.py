@@ -77,9 +77,9 @@ def execute_run_ansible(
         .order_by(Environment.id)
         .all()
     )
-    results: list[CheckResult] = []
+    total = 0
 
-    for env in envs:
+    for idx, env in enumerate(envs, start=1):
         os_flavor = env.os_flavor or "centos"
         nodes = (
             db.query(PhysicalNode).filter(PhysicalNode.environment_id == env.id).all()
@@ -87,6 +87,7 @@ def execute_run_ansible(
         if not nodes:
             continue
         by_ip = {n.ip: n for n in nodes}
+        env_results: list[CheckResult] = []
 
         # physical / all-node checks: resource by default, or a named inspection
         # when the check item's name matches a known all-node check (e.g. bond).
@@ -109,7 +110,7 @@ def execute_run_ansible(
                 n = by_ip.get(ip)
                 if not n:
                     continue
-                results.append(
+                env_results.append(
                     CheckResult(
                         run_id=run.id, check_item_id=item.id,
                         object_type="physical", object_name=f"{n.hostname}({n.ip})",
@@ -135,7 +136,7 @@ def execute_run_ansible(
                         continue
                     rc, out = collector.run_on_master(ms(item.name), chain=chain, timeout=120)
                     obj = f"{item.name}@{gw_node.hostname}"
-                    results.append(
+                    env_results.append(
                         CheckResult(
                             run_id=run.id, check_item_id=item.id,
                             object_type="master", object_name=obj,
@@ -170,7 +171,7 @@ def execute_run_ansible(
                 if hit is None or not node:
                     continue
                 rc, out = hit
-                results.append(
+                env_results.append(
                     CheckResult(
                         run_id=run.id, check_item_id=(service_items[0].id if service_items else 0),
                         object_type="service", object_name=f"{name}@env{env.id}",
@@ -181,15 +182,23 @@ def execute_run_ansible(
                     )
                 )
 
-    db.add_all(results)
+        # 每个环境巡检完立即落库并更新进度，前端轮询可见实时条数与完成环境数，
+        # 而不是等全部环境跑完才一次性提交。
+        if env_results:
+            total += len(env_results)
+            db.add_all(env_results)
+            run.progress_note = f"已完成 {idx}/{len(envs)} 个环境 · 累计 {total} 条结果"
+            db.commit()
+
     run.status = "finished"
     run.finished_at = datetime.now(timezone.utc)
+    run.progress_note = f"全部 {len(envs)} 个环境完成 · 共 {total} 条结果"
     db.flush()
     report = generate_report(db, run, account)
     db.add(report)
     db.flush()
     db.add(
         AuditLog(actor=account, action="run.trigger", target_ref=f"run:{run.id}",
-                 detail=f"ansible-fanout collect ({len(results)} results)")
+                 detail=f"ansible-fanout collect ({total} results)")
     )
     db.commit()

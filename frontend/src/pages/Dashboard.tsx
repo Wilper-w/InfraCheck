@@ -265,6 +265,7 @@ export default function Dashboard() {
   const [topIssues, setTopIssues] = useState<TopIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
+  const [runProgress, setRunProgress] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -298,8 +299,11 @@ export default function Dashboard() {
       while (Date.now() < deadline) {
         const run = await runApi.detail(run_id);
         if (run.status !== 'running') break;
+        // 后端每完成一个环境即提交结果并更新 progress_note，这里实时展示
+        setRunProgress(run.progress_note || null);
         await new Promise((r) => setTimeout(r, 2000));
       }
+      setRunProgress(null);
       loadData();
     } catch {
       /* 拦截器已提示：触发或轮询失败时展示现有数据 */
@@ -350,6 +354,9 @@ export default function Dashboard() {
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-6)' }}>
             <HealthSummary rate={rate} conclusion={conclusion} />
+            {triggering && runProgress && (
+              <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--c-text-2)' }}>巡检中 · {runProgress}</span>
+            )}
             <Button type="primary" icon={<IconRefresh />} loading={triggering} onClick={handleTrigger}>
               立即巡检
             </Button>

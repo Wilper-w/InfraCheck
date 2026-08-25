@@ -59,6 +59,7 @@ class RunOut(BaseModel):
     started_at: datetime
     finished_at: Optional[datetime] = None
     status: str
+    progress_note: Optional[str] = None
 
 
 class RunDetail(RunOut):

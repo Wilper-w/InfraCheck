@@ -110,6 +110,7 @@ export interface Run {
   started_at: string;
   finished_at: string | null;
   status: RunStatus;
+  progress_note?: string | null;
 }
 export interface RunDetail extends Run {
   results?: {
