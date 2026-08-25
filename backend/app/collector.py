@@ -69,16 +69,26 @@ def _gateway(command: str, chain: dict | None = None, timeout: int = 300) -> str
     return _run(_ssh(c["host"], c["port"], c["user"], command), timeout)
 
 
+def _target_ssh(remote_cmd: str, c: dict) -> str:
+    """SSH command that runs `remote_cmd` on the ansible-target node: the master
+    (via the entry) when master_ip is set, else the entry itself.
+
+    Both sync_inventory and run_ansible MUST target the same node. Writing the
+    inventory (hosts) on the entry while ansible runs on the master leaves the
+    file on a different filesystem, so ansible sees an empty/missing inventory
+    and produces no per-host results.
+    """
+    if c["master_ip"]:
+        return _ssh(c["host"], c["port"], c["user"], _ssh(c["master_ip"], 22, "root", remote_cmd))
+    return _ssh(c["host"], c["port"], c["user"], remote_cmd)
+
 
 def _master_shell(script: str, chain: dict | None, timeout: int) -> str:
     """Return a command that runs `script` on the env's master (entry -> master)."""
     c = resolve_chain(chain)
     b64 = base64.b64encode(script.encode()).decode()
     run = f"echo {b64} | base64 -d > /tmp/ic_single.sh && timeout {timeout} bash /tmp/ic_single.sh; echo __IC_RC__=$?"
-    if c["master_ip"]:
-        # two-hop: hop through the entry to the master, then run the script there
-        return _ssh(c["host"], c["port"], c["user"], _ssh(c["master_ip"], 22, "root", run))
-    return _ssh(c["host"], c["port"], c["user"], run)
+    return _target_ssh(run, c)
 
 
 def run_on_master(script: str, chain: dict | None = None, timeout: int = 120) -> tuple[int, str]:
@@ -110,23 +120,31 @@ def sync_inventory(node_ips: list[str], chain: dict | None = None) -> None:
         f"mkdir -p {ansible_dir()} && echo {b64} | base64 -d > {ansible_dir()}/hosts && "
         f"echo WROTE && wc -l < {ansible_dir()}/hosts"
     )
-    _gateway(cmd, chain)
+    # Must land on the same node run_ansible executes on (master via entry when
+    # master_ip is set), else ansible reads an empty/missing inventory.
+    c = resolve_chain(chain)
+    _run(_target_ssh(cmd, c), 50)
 
 
 def run_ansible(script: str, chain: dict | None = None, timeout: int = 300) -> str:
     """Run a read-only shell script over the inventory via ansible on the env's
-    MASTER (reachable through the entry when master_ip is set)."""
+    MASTER (reachable through the entry when master_ip is set).
+
+    Self-contained: passes an explicit inventory (-i) and SSH connect options so
+    it does not depend on a hand-deployed ansible.cfg on the target node — its
+    absence previously left `ansible all` with no inventory and zero results.
+    stderr is merged so connection/parse failures surface as evidence instead of
+    being silently discarded.
+    """
     b64 = base64.b64encode(script.encode()).decode()
     run = (
         f"mkdir -p {ansible_dir()} && echo {b64} | base64 -d > {ansible_dir()}/.check.sh && "
-        f"cd {ansible_dir()} && timeout {timeout} ansible all -m script -a /nvme/infracheck_ansible/.check.sh --one-line 2>/dev/null"
+        f"cd {ansible_dir()} && timeout {timeout} ansible all -i {ansible_dir()}/hosts "
+        f"-u {config.SSH_USER or 'root'} -m script -a {ansible_dir()}/.check.sh --one-line "
+        f"--ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=publickey' 2>&1"
     )
     c = resolve_chain(chain)
-    if c["master_ip"]:
-        hop = _ssh(c["host"], c["port"], c["user"], _ssh(c["master_ip"], 22, "root", run))
-    else:
-        hop = _ssh(c["host"], c["port"], c["user"], run)
-    return _run(hop, timeout + 30)
+    return _run(_target_ssh(run, c), timeout + 30)
 
 
 def parse_results(raw: str) -> list[dict]:
