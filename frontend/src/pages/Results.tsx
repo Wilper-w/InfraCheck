@@ -48,6 +48,7 @@ export default function Results() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
 
   const [detailRun, setDetailRun] = useState<RunDetail | null>(null);
@@ -55,12 +56,13 @@ export default function Results() {
   const [resultsLoading, setResultsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ResultStatus | undefined>();
   const [resultsPage, setResultsPage] = useState(1);
+  const [resultsPageSize, setResultsPageSize] = useState(20);
   const [resultsTotal, setResultsTotal] = useState(0);
 
-  const loadRuns = useCallback(async (p: number) => {
+  const loadRuns = useCallback(async (p: number, size: number) => {
     setLoading(true);
     try {
-      const resp = await runApi.list({ page: p, page_size: 10 });
+      const resp = await runApi.list({ page: p, page_size: size });
       setRuns(resp.items);
       setTotal(resp.total);
     } catch {
@@ -71,16 +73,16 @@ export default function Results() {
   }, []);
 
   useEffect(() => {
-    loadRuns(page);
-  }, [page, loadRuns]);
+    loadRuns(page, pageSize);
+  }, [page, pageSize, loadRuns]);
 
   const loadResults = useCallback(
-    async (runId: number, p: number, status?: ResultStatus) => {
+    async (runId: number, p: number, size: number, status?: ResultStatus) => {
       setResultsLoading(true);
       try {
         const resp = await runApi.results(runId, {
           page: p,
-          page_size: 20,
+          page_size: size,
           ...(status ? { status } : {}),
         });
         setResults(resp.items);
@@ -100,9 +102,9 @@ export default function Results() {
       setDetailRun(detail);
       setStatusFilter(undefined);
       setResultsPage(1);
-      loadResults(run.id, 1);
+      loadResults(run.id, 1, resultsPageSize);
     },
-    [loadResults],
+    [loadResults, resultsPageSize],
   );
 
   const runColumns: TableColumnProps<Run>[] = [
@@ -123,8 +125,18 @@ export default function Results() {
       ),
     },
     { title: '触发人', dataIndex: 'triggered_by', width: 130 },
-    { title: '开始时间', dataIndex: 'started_at', render: (v: string) => fmtTime(v) },
-    { title: '结束时间', dataIndex: 'finished_at', render: (v: string | null) => fmtTime(v) },
+    {
+      title: '开始时间',
+      dataIndex: 'started_at',
+      width: 170,
+      render: (v: string) => <span className="table-time">{fmtTime(v)}</span>,
+    },
+    {
+      title: '结束时间',
+      dataIndex: 'finished_at',
+      width: 170,
+      render: (v: string | null) => <span className="table-time">{fmtTime(v)}</span>,
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -198,12 +210,17 @@ export default function Results() {
           loading={loading}
           columns={runColumns}
           data={runs}
+          scroll={{ x: 920 }}
           pagination={{
             current: page,
-            pageSize: 10,
+            pageSize,
             total,
             showTotal: true,
-            onChange: setPage,
+            sizeCanChange: true,
+            onChange: (nextPage, nextPageSize) => {
+              setPage(nextPage);
+              setPageSize(nextPageSize);
+            },
           }}
           noDataElement={
             <Empty description="暂无巡检记录，请先触发一次巡检" />
@@ -252,7 +269,7 @@ export default function Results() {
                 onChange={(v) => {
                   setStatusFilter(v as ResultStatus | undefined);
                   setResultsPage(1);
-                  loadResults(detailRun.id, 1, v as ResultStatus | undefined);
+                  loadResults(detailRun.id, 1, resultsPageSize, v as ResultStatus | undefined);
                 }}
                 style={{ width: 160 }}
               >
@@ -273,6 +290,7 @@ export default function Results() {
                 rowKey="id"
                 columns={resultColumns}
                 data={results}
+                scroll={{ x: 900 }}
                 expandedRowRender={(r: CheckResult) => {
                   const e = parseEvidence(r.evidence);
                   return (
@@ -292,12 +310,14 @@ export default function Results() {
                 }}
                 pagination={{
                   current: resultsPage,
-                  pageSize: 20,
+                  pageSize: resultsPageSize,
                   total: resultsTotal,
                   showTotal: true,
-                  onChange: (p) => {
-                    setResultsPage(p);
-                    loadResults(detailRun.id, p, statusFilter);
+                  sizeCanChange: true,
+                  onChange: (nextPage, nextPageSize) => {
+                    setResultsPage(nextPage);
+                    setResultsPageSize(nextPageSize);
+                    loadResults(detailRun.id, nextPage, nextPageSize, statusFilter);
                   },
                 }}
                 noDataElement={<Empty description="无符合条件的结果" />}

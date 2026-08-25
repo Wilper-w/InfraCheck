@@ -36,15 +36,16 @@ export default function Audit() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [actor, setActor] = useState<string | undefined>();
   const [actors, setActors] = useState<string[]>([]);
 
   const load = useCallback(
-    async (p: number) => {
+    async (p: number, size: number) => {
       setLoading(true);
       try {
-        const resp = await auditApi.list({ page: p, page_size: 10, ...(actor ? { actor } : {}) });
+        const resp = await auditApi.list({ page: p, page_size: size, ...(actor ? { actor } : {}) });
         setLogs(resp.items);
         setTotal(resp.total);
         setActors((prev) => Array.from(new Set([...prev, ...resp.items.map((x) => x.actor)])));
@@ -59,8 +60,8 @@ export default function Audit() {
 
   useEffect(() => {
     setPage(1);
-    load(1);
-  }, [actor, load]);
+    load(1, pageSize);
+  }, [actor, pageSize, load]);
 
   const columns: TableColumnProps<AuditLog>[] = [
     {
@@ -89,7 +90,12 @@ export default function Audit() {
     },
     { title: '目标', dataIndex: 'target_ref', width: 130, render: (v: string | null) => v || '-' },
     { title: '详情', dataIndex: 'detail' },
-    { title: '时间', dataIndex: 'created_at', width: 180, render: (v: string) => fmtTime(v) },
+    {
+      title: '时间',
+      dataIndex: 'created_at',
+      width: 180,
+      render: (v: string) => <span className="table-time">{fmtTime(v)}</span>,
+    },
   ];
 
   return (
@@ -117,12 +123,21 @@ export default function Audit() {
           loading={loading}
           columns={columns}
           data={logs}
+          scroll={{ x: 900 }}
           pagination={{
             current: page,
-            pageSize: 10,
+            pageSize,
             total,
             showTotal: true,
-            onChange: setPage,
+            sizeCanChange: true,
+            onChange: (nextPage, nextPageSize) => {
+              setPage(nextPage);
+              if (nextPageSize !== pageSize) {
+                setPageSize(nextPageSize);
+              } else {
+                load(nextPage, nextPageSize);
+              }
+            },
           }}
           noDataElement={<Empty description="暂无审计记录" />}
         />

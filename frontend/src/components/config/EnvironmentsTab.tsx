@@ -36,6 +36,7 @@ export default function EnvironmentsTab() {
     {
       title: '名称',
       dataIndex: 'name',
+      width: 180,
       render: (v: string) => <Text bold>{v}</Text>,
     },
     {
@@ -52,8 +53,13 @@ export default function EnvironmentsTab() {
           v
         ),
     },
-    { title: '描述', dataIndex: 'description', render: (v: string) => v || '-' },
-    { title: '创建时间', dataIndex: 'created_at', width: 180, render: (v: string) => new Date(v).toLocaleString('zh-CN', { hour12: false }) },
+    { title: '描述', dataIndex: 'description', width: 260, render: (v: string) => v || '-' },
+    {
+      title: '创建时间',
+      dataIndex: 'created_at',
+      width: 180,
+      render: (v: string) => <span className="table-time">{new Date(v).toLocaleString('zh-CN', { hour12: false })}</span>,
+    },
     {
       title: '操作',
       key: 'action',
@@ -91,6 +97,7 @@ export default function EnvironmentsTab() {
         loading={crud.loading}
         columns={columns}
         data={crud.items}
+        scroll={{ x: 980 }}
         pagination={crud.pagination}
         noDataElement={<Empty description="暂无环境" />}
       />

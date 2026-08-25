@@ -405,6 +405,9 @@ body {
   word-break: break-word;
   overflow-wrap: break-word;
 }
+.table-time {
+  white-space: nowrap;
+}
 .arco-table-pagination {
   padding: var(--s-4) 0 0;
 }

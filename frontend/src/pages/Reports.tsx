@@ -32,6 +32,7 @@ export default function Reports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
 
   // 预览
@@ -39,10 +40,10 @@ export default function Reports() {
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const load = useCallback(async (p: number) => {
+  const load = useCallback(async (p: number, size: number) => {
     setLoading(true);
     try {
-      const resp = await reportApi.list({ page: p, page_size: 10 });
+      const resp = await reportApi.list({ page: p, page_size: size });
       setReports(resp.items);
       setTotal(resp.total);
     } catch {
@@ -53,8 +54,8 @@ export default function Reports() {
   }, []);
 
   useEffect(() => {
-    load(page);
-  }, [page, load]);
+    load(page, pageSize);
+  }, [page, pageSize, load]);
 
   const openPreview = async (id: number) => {
     setPreviewId(id);
@@ -90,10 +91,17 @@ export default function Reports() {
     },
     { title: '对应巡检', dataIndex: 'run_id', width: 110, render: (v: number) => <Tag color="arcoblue">run #{v}</Tag> },
     { title: '生成人', dataIndex: 'rendered_by', width: 130 },
-    { title: '生成时间', dataIndex: 'generated_at', render: (v: string) => fmtTime(v) },
+    {
+      title: '生成时间',
+      dataIndex: 'generated_at',
+      width: 180,
+      render: (v: string) => <span className="table-time">{fmtTime(v)}</span>,
+    },
     {
       title: '结果概览',
       key: 'summary',
+      width: 340,
+      resizable: true,
       render: (_: unknown, r: Report) => (
         <Space size={4}>
           {STATUS_META.map((m) => (
@@ -119,6 +127,8 @@ export default function Reports() {
     {
       title: '操作',
       key: 'action',
+      width: 340,
+      resizable: true,
       render: (_: unknown, record: Report) => (
         <Space>
           <Button size="small" icon={<IconEye />} onClick={() => openPreview(record.id)}>
@@ -148,12 +158,17 @@ export default function Reports() {
           loading={loading}
           columns={columns}
           data={reports}
+          scroll={{ x: 1390 }}
           pagination={{
             current: page,
-            pageSize: 10,
+            pageSize,
             total,
             showTotal: true,
-            onChange: setPage,
+            sizeCanChange: true,
+            onChange: (nextPage, nextPageSize) => {
+              setPage(nextPage);
+              setPageSize(nextPageSize);
+            },
           }}
           noDataElement={<Empty description="暂无报告，触发巡检后自动生成" />}
         />

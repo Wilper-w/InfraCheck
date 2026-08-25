@@ -36,7 +36,7 @@ export default function NodesTab() {
 
   const columns: TableColumnProps<PhysicalNode>[] = [
     { title: 'ID', dataIndex: 'id', width: 70 },
-    { title: '主机名', dataIndex: 'hostname', render: (v: string) => <Text bold>{v}</Text> },
+    { title: '主机名', dataIndex: 'hostname', width: 180, render: (v: string) => <Text bold>{v}</Text> },
     { title: 'IP 地址', dataIndex: 'ip', width: 150 },
     {
       title: '操作系统',
@@ -50,7 +50,7 @@ export default function NodesTab() {
       dataIndex: 'created_at',
       width: 170,
       resizable: true,
-      render: (v: string) => new Date(v).toLocaleString('zh-CN', { hour12: false }),
+      render: (v: string) => <span className="table-time">{new Date(v).toLocaleString('zh-CN', { hour12: false })}</span>,
     },
     {
       title: '操作',
@@ -101,6 +101,7 @@ export default function NodesTab() {
           loading={crud.loading}
           columns={columns}
           data={crud.items}
+          scroll={{ x: 800 }}
           pagination={crud.pagination}
           noDataElement={<Empty description={`环境 ${currentEnv?.name ?? ''} 暂无物理机`} />}
         />

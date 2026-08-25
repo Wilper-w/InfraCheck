@@ -33,7 +33,7 @@ export interface CrudTableOptions<T, TInput> {
 export function useCrudTable<T extends { id: number }, TInput>({
   api,
   labels,
-  pageSize = 10,
+  pageSize: initialPageSize = 10,
   ready = true,
   resetKey,
   toFormValues,
@@ -42,6 +42,7 @@ export function useCrudTable<T extends { id: number }, TInput>({
   const [items, setItems] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(initialPageSize);
   const [loading, setLoading] = useState(ready);
   const [visible, setVisible] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
@@ -52,10 +53,10 @@ export function useCrudTable<T extends { id: number }, TInput>({
   apiRef.current = api;
 
   const load = useCallback(
-    async (p: number) => {
+    async (p: number, size: number) => {
       setLoading(true);
       try {
-        const resp = await apiRef.current.list({ page: p, page_size: pageSize });
+        const resp = await apiRef.current.list({ page: p, page_size: size });
         setItems(resp.items);
         setTotal(resp.total);
       } catch {
@@ -64,21 +65,25 @@ export function useCrudTable<T extends { id: number }, TInput>({
         setLoading(false);
       }
     },
-    [pageSize],
+    [],
   );
 
   // 首次挂载与 resetKey 变化时回到第 1 页；翻页走 changePage，二者不会重复触发
   useEffect(() => {
     setPage(1);
-    if (ready) void load(1);
-  }, [resetKey, ready, load]);
+    if (ready) void load(1, pageSize);
+  }, [resetKey, ready, pageSize, load]);
 
-  const changePage = (p: number) => {
+  const changePage = (p: number, size: number) => {
     setPage(p);
-    void load(p);
+    if (size !== pageSize) {
+      setPageSize(size);
+    } else {
+      void load(p, size);
+    }
   };
 
-  const reload = () => load(page);
+  const reload = () => load(page, pageSize);
 
   // Arco 期望 DeepPartial<TInput>，泛型未解析时无法由 Partial<TInput> 推导，故在此收敛一次
   const setValues = (values: Partial<TInput>) =>
@@ -109,7 +114,7 @@ export function useCrudTable<T extends { id: number }, TInput>({
         Message.success(labels.created);
       }
       setVisible(false);
-      await load(page);
+      await load(page, pageSize);
     } catch {
       /* 拦截器已提示 */
     }
@@ -120,7 +125,7 @@ export function useCrudTable<T extends { id: number }, TInput>({
     try {
       await apiRef.current.remove(id);
       Message.success(labels.deleted);
-      await load(page);
+      await load(page, pageSize);
     } catch {
       /* 拦截器已提示 */
     }
@@ -146,6 +151,7 @@ export function useCrudTable<T extends { id: number }, TInput>({
       pageSize,
       total,
       showTotal: true,
+      sizeCanChange: true,
       onChange: changePage,
     },
   };

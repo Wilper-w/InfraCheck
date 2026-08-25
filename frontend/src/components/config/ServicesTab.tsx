@@ -91,6 +91,7 @@ export default function ServicesTab() {
     {
       title: '服务名',
       dataIndex: 'name',
+      width: 180,
       render: (v: string) => <Text bold>{v}</Text>,
     },
     {
@@ -106,7 +107,7 @@ export default function ServicesTab() {
         </Space>
       ),
     },
-    { title: '所在节点', dataIndex: 'node_id', render: (v: number | null) => nodeName(v) },
+    { title: '所在节点', dataIndex: 'node_id', width: 220, render: (v: number | null) => nodeName(v) },
     {
       title: '启用',
       dataIndex: 'enabled',
@@ -177,6 +178,7 @@ export default function ServicesTab() {
           loading={crud.loading}
           columns={columns}
           data={crud.items}
+          scroll={{ x: 872 }}
           pagination={crud.pagination}
           noDataElement={<Empty description={`环境 ${currentEnv?.name ?? ''} 暂无系统服务`} />}
         />

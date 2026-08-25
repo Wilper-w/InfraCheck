@@ -48,7 +48,7 @@ export default function CheckItemsTab() {
 
   const columns: TableColumnProps<CheckItem>[] = [
     { title: 'ID', dataIndex: 'id', width: 70 },
-    { title: '名称', dataIndex: 'name', render: (v: string) => <Text bold>{v}</Text> },
+    { title: '名称', dataIndex: 'name', width: 220, render: (v: string) => <Text bold>{v}</Text> },
     {
       title: '对象类型',
       dataIndex: 'target_type',
@@ -67,7 +67,7 @@ export default function CheckItemsTab() {
       resizable: true,
       render: (v: string | null) => (v ? <Tag>{v}</Tag> : <Tag color="gray">全部</Tag>),
     },
-    { title: '描述', dataIndex: 'description', render: (v: string) => v || '-' },
+    { title: '描述', dataIndex: 'description', width: 260, render: (v: string) => v || '-' },
     {
       title: '启用',
       dataIndex: 'enabled',
@@ -114,6 +114,7 @@ export default function CheckItemsTab() {
         loading={crud.loading}
         columns={columns}
         data={crud.items}
+        scroll={{ x: 1010 }}
         pagination={crud.pagination}
         noDataElement={<Empty description="暂无巡检项" />}
       />
